@@ -1,6 +1,6 @@
 # Capital Opportunities Tracker
 
-An internal tool for tracking funding opportunities submitted by companies 
+An internal tool for tracking funding opportunities submitted by companies
 (`docs/assignment.pdf`).
 
 ## Overview
@@ -54,7 +54,7 @@ Browser
 
 Route structure: `src/app/(app)/` holds every authenticated page behind a
 shared layout with the nav bar; `src/app/login/` is the only public route.
-`src/actions/` holds all Server Actions (reads *and* writes); `src/lib/`
+`src/actions/` holds all Server Actions (reads _and_ writes); `src/lib/`
 holds validation schemas, permission checks, the stage machine, DTO mappers,
 and shared client hooks; `src/components/` holds presentation only — no
 Prisma or session access.
@@ -175,22 +175,6 @@ npm run db:studio  # Prisma Studio, a GUI over the database
 
 </details>
 
-## Seeded accounts
-
-All seeded users share the password **`password123`**.
-
-| Role | Email |
-| --- | --- |
-| Admin | `admin@nexudy.test` |
-| Reviewer | `reviewer1@nexudy.test` |
-| Reviewer | `reviewer2@nexudy.test` |
-| Viewer | `viewer@nexudy.test` |
-
-The login page also displays these for convenience. The seed also creates a
-**disabled** reviewer account (`former-reviewer@nexudy.test`) so the
-disabled state — and the fact that it can't sign in — is visible without
-having to disable someone yourself first.
-
 ## Manual testing performed
 
 Beyond `npm run typecheck`, `npm run lint`, and `npm run build` all passing
@@ -210,7 +194,13 @@ jump. Using a real, valid admin session cookie, the server still rejected
 it:
 
 ```json
-{"ok":false,"error":{"kind":"CONFLICT","message":"An opportunity in DRAFT cannot move to APPROVED."}}
+{
+  "ok": false,
+  "error": {
+    "kind": "CONFLICT",
+    "message": "An opportunity in DRAFT cannot move to APPROVED."
+  }
+}
 ```
 
 and the database row was confirmed unchanged. This exercises exactly the
@@ -221,7 +211,7 @@ interface."
 
 - **The Docker image runs migrations and seeds on container startup**
   (`docker-entrypoint.sh`), rather than expecting a separate manual step —
-  `docker compose up` is meant to be the *only* command a reviewer runs.
+  `docker compose up` is meant to be the _only_ command a reviewer runs.
   `prisma migrate deploy` is safe to run on every start (it only applies
   pending migrations). Seeding is conditional: the entrypoint checks the
   user count first and only seeds an empty database, so restarting the
@@ -262,7 +252,7 @@ interface."
   new opportunity's detail page, while the detail page just revalidates its
   SWR data and closes, so an edit updates in place with no navigation at
   all. There's deliberately no `/opportunities/new` or `/opportunities/
-  [id]/edit` route anymore — the modal is the only way in, so there's no
+[id]/edit` route anymore — the modal is the only way in, so there's no
   second code path to keep in sync.
 - **Every UI component is shadcn/ui**, not hand-rolled. Buttons, inputs,
   selects, the table, cards, badges, dialogs, the sidebar, and toasts
@@ -271,7 +261,7 @@ interface."
   alongside shadcn's defaults, since stage badges need colors shadcn's base
   palette doesn't ship). Radix's `Select` renders a hidden native `<select>`
   when given a `name`, so it drops directly into the `<form action=
-  {serverAction}>` + `FormData` pattern below without extra plumbing — the
+{serverAction}>` + `FormData` pattern below without extra plumbing — the
   one exception is the reviewer-assignment "Unassigned" option, which uses a
   sentinel value since Radix disallows an empty-string item value.
 - **NextAuth v5 (Auth.js) split into `auth.config.ts` + `auth.ts`.** The
@@ -292,11 +282,11 @@ interface."
   queryable and type-safe, at the cost of a few nullable columns that are
   only ever populated for their matching `type`.
 - **`archivedAt: DateTime?` instead of `archived: Boolean`** on
-  `Opportunity` — same behavior, but records *when* an opportunity was
+  `Opportunity` — same behavior, but records _when_ an opportunity was
   archived at no extra cost.
 - **Structured `ActionResult<T>` return type** for every Server Action
   (`{ ok: true, data }` or `{ ok: false, error: { kind, message,
-  fieldErrors? } }`) instead of throwing. This lets the UI distinguish
+fieldErrors? } }`) instead of throwing. This lets the UI distinguish
   validation errors (shown inline, per field) from authorization/business-
   rule errors (shown as a toast) without parsing error strings.
 - **Edit vs. stage change vs. reviewer assignment are three separate
@@ -360,4 +350,3 @@ assignment. Of the brief's optional enhancements, the audit-log CSV export
 and a Docker Compose setup are done (see "Setup" above and `docker-compose.yml`);
 a dashboard chart, optimistic UI updates, and a hosted deployment were not
 attempted.
-
