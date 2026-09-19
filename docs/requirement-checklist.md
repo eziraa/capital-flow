@@ -11,7 +11,7 @@ checked against the actual implementation.
 | Filter by stage | Complete | `OpportunityFilters.tsx` stage `<select>` |
 | Sort by requested amount | Complete | `OpportunityTable.tsx` sortable column header |
 | Sort by submission date | Complete | `OpportunityTable.tsx` sortable column header |
-| Pagination | Complete | `src/components/ui/Pagination.tsx`, `PAGE_SIZE = 10` |
+| Pagination | Complete | `src/components/opportunities/OpportunityPagination.tsx` (shadcn Pagination), `PAGE_SIZE = 10` |
 | Open an individual opportunity | Complete | row/card links to `/opportunities/[id]` |
 | Search/filter/sort/page state in the URL | Complete | `src/lib/use-opportunity-list-query.ts` |
 | Loading / empty / error states | Complete | `TableSkeleton`, `EmptyState`, `ErrorState` in `OpportunitiesListClient.tsx` |
@@ -29,7 +29,7 @@ checked against the actual implementation.
 | Description required, ≤ 500 chars | Complete | `description` schema |
 | Submission date valid | Complete | `submissionDate` schema: `z.coerce.date()` |
 | Stage one of the supported values | Complete | stage is never free-form client input — see assumption below |
-| Field-level validation messages | Complete | `Field.tsx` renders `fieldError(state, name)` next to each input |
+| Field-level validation messages | Complete | `form-field.tsx` renders `fieldError(state, name)` next to each input |
 | **4. Stage transitions** | | |
 | Only `DRAFT→UNDER_REVIEW`, `UNDER_REVIEW→APPROVED`, `UNDER_REVIEW→REJECTED` allowed | Complete | `src/lib/stage-machine.ts`, enforced inside `changeOpportunityStage`'s transaction against the row's current stage |
 | Server rejects all other transitions, even outside the UI | Complete | verified manually by replaying the raw multipart Server Action request with a tampered `stage=APPROVED` against a `DRAFT` record — server returned `CONFLICT` and the database was unchanged (see README → "Manual security testing") |
@@ -97,6 +97,6 @@ checked against the actual implementation.
 | Usable on desktop and small screens | Complete | table→card responsive strategy, verified at 375px width (see README → "Manual testing") |
 | Semantic HTML, associated labels | Complete | every input uses `<label htmlFor>`; tables use `<th scope="col">` |
 | Prevent accidental duplicate submissions | Complete | `useFormStatus`-driven `SubmitButton` disables itself while a Server Action is pending |
-| Visible success/failure feedback | Complete | `src/components/ui/toast.tsx`, wired through `useActionFeedback` |
+| Visible success/failure feedback | Complete | Sonner toasts (`src/components/ui/sonner.tsx`), wired through `useActionFeedback` |
 | Transactions for multi-write consistency | Complete | create, stage change, reviewer assignment, comment, archive, restore |
 | **Optional enhancements** | Not attempted | Time was spent completing the core requirements thoroughly instead; see README → "What I'd improve" |

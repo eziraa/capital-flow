@@ -1,4 +1,4 @@
-import { STAGE_LABELS } from "@/components/ui/Badge";
+import { STAGE_LABELS } from "@/components/ui/status-badges";
 import type { ActivityDTO } from "@/lib/dto";
 
 export function describeActivity(activity: ActivityDTO): string {

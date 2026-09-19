@@ -1,8 +1,8 @@
 "use client";
 
 import { useActionState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 
-import { useToast } from "@/components/ui/toast";
 import type { ActionResult } from "@/lib/action-result";
 
 type FormAction<T> = (
@@ -19,7 +19,6 @@ export function useActionFeedback<T>(
   action: FormAction<T>,
   options?: { successMessage?: string; onSuccess?: (data: T) => void },
 ) {
-  const { showToast } = useToast();
   const [state, formAction, isPending] = useActionState<ActionResult<T> | null, FormData>(
     action,
     null,
@@ -31,10 +30,10 @@ export function useActionFeedback<T>(
     lastHandled.current = state;
 
     if (state.ok) {
-      showToast("success", options?.successMessage ?? "Saved.");
+      toast.success(options?.successMessage ?? "Saved.");
       options?.onSuccess?.(state.data);
     } else if (state.error.kind !== "VALIDATION") {
-      showToast("error", state.error.message);
+      toast.error(state.error.message);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);

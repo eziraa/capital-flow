@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowLeft, Info, Pencil } from "lucide-react";
 import Link from "next/link";
 import useSWR from "swr";
 import type { UserRole } from "@prisma/client";
@@ -12,9 +13,11 @@ import { ArchiveControls } from "@/components/opportunities/ArchiveControls";
 import { CommentsSection } from "@/components/opportunities/CommentsSection";
 import { ReviewerAssignPanel } from "@/components/opportunities/ReviewerAssignPanel";
 import { StageActions } from "@/components/opportunities/StageActions";
-import { ArchivedBadge, StageBadge } from "@/components/ui/Badge";
-import { buttonClassName } from "@/components/ui/Button";
-import { CardSkeleton, ErrorState } from "@/components/ui/States";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardSkeleton, ErrorState } from "@/components/ui/states";
+import { ArchivedBadge, StageBadge } from "@/components/ui/status-badges";
 import { formatAmount, formatDate, formatDateTime } from "@/lib/format";
 import {
   canAssignReviewer,
@@ -73,48 +76,66 @@ export function OpportunityDetailClient({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link href="/opportunities" className="text-sm text-muted-fg hover:text-fg">
-          ← Back to opportunities
+        <Link
+          href="/opportunities"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="size-4" />
+          Back to opportunities
         </Link>
       </div>
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl font-semibold text-fg">{opportunity.companyName}</h1>
+            <h1 className="text-xl font-semibold text-foreground">{opportunity.companyName}</h1>
             <StageBadge stage={opportunity.stage} />
             {isArchived ? <ArchivedBadge /> : null}
           </div>
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 text-sm text-muted-foreground">
             Submitted {formatDate(opportunity.submissionDate)} by {opportunity.createdBy.name}
           </p>
         </div>
 
         {canEditOpportunity(role) && !isArchived ? (
-          <Link href={`/opportunities/${id}/edit`} className={buttonClassName("secondary")}>
-            Edit details
-          </Link>
+          <Button asChild variant="outline">
+            <Link href={`/opportunities/${id}/edit`}>
+              <Pencil />
+              Edit details
+            </Link>
+          </Button>
         ) : null}
       </div>
 
       {isArchived ? (
-        <div className="rounded-md border border-border-strong bg-bg px-4 py-3 text-sm text-muted-fg">
-          This opportunity is archived. Restore it to edit, change its stage, or add comments.
-        </div>
+        <Alert>
+          <Info />
+          <AlertDescription>
+            This opportunity is archived. Restore it to edit, change its stage, or add comments.
+          </AlertDescription>
+        </Alert>
       ) : null}
 
-      <section className="grid grid-cols-1 gap-6 rounded-lg border border-border bg-surface p-6 shadow-sm sm:grid-cols-2">
-        <DetailField label="Requested amount" value={formatAmount(opportunity.requestedAmount, opportunity.currency)} />
-        <DetailField label="Currency" value={opportunity.currency} />
-        <DetailField label="Submission date" value={formatDate(opportunity.submissionDate)} />
-        <DetailField label="Reviewer" value={opportunity.reviewer?.name ?? "Unassigned"} />
-        <DetailField label="Created" value={`${formatDateTime(opportunity.createdAt)} by ${opportunity.createdBy.name}`} />
-        <DetailField label="Last updated" value={formatDateTime(opportunity.updatedAt)} />
-        <div className="sm:col-span-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Description</p>
-          <p className="mt-1 whitespace-pre-wrap text-sm text-fg">{opportunity.description}</p>
-        </div>
-      </section>
+      <Card>
+        <CardContent className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          <DetailField
+            label="Requested amount"
+            value={formatAmount(opportunity.requestedAmount, opportunity.currency)}
+          />
+          <DetailField label="Currency" value={opportunity.currency} />
+          <DetailField label="Submission date" value={formatDate(opportunity.submissionDate)} />
+          <DetailField label="Reviewer" value={opportunity.reviewer?.name ?? "Unassigned"} />
+          <DetailField
+            label="Created"
+            value={`${formatDateTime(opportunity.createdAt)} by ${opportunity.createdBy.name}`}
+          />
+          <DetailField label="Last updated" value={formatDateTime(opportunity.updatedAt)} />
+          <div className="sm:col-span-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Description</p>
+            <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{opportunity.description}</p>
+          </div>
+        </CardContent>
+      </Card>
 
       {canAssignReviewer(role) && !isArchived ? (
         <Section title="Reviewer assignment">
@@ -174,17 +195,19 @@ export function OpportunityDetailClient({
 function DetailField({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
-      <p className="mt-1 text-sm text-fg">{value}</p>
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-1 text-sm text-foreground">{value}</p>
     </div>
   );
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-lg border border-border bg-surface p-6 shadow-sm">
-      <h2 className="mb-4 text-sm font-semibold text-fg">{title}</h2>
-      {children}
-    </section>
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
   );
 }

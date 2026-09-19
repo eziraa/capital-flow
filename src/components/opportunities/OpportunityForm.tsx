@@ -5,8 +5,11 @@ import { useState } from "react";
 import { Currency } from "@prisma/client";
 
 import { createOpportunityFormAction, updateOpportunityFormAction } from "@/actions/opportunities";
-import { Field, inputClassName } from "@/components/ui/Field";
-import { SubmitButton } from "@/components/ui/SubmitButton";
+import { FormField } from "@/components/ui/form-field";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SubmitButton } from "@/components/ui/submit-button";
+import { Textarea } from "@/components/ui/textarea";
 import { fieldError, useActionFeedback } from "@/lib/use-action-feedback";
 
 export type OpportunityFormValues = {
@@ -41,20 +44,20 @@ export function OpportunityForm({
     <form action={formAction} className="flex flex-col gap-5" noValidate>
       {mode === "edit" ? <input type="hidden" name="id" value={opportunityId} /> : null}
 
-      <Field id="companyName" label="Company name" error={fieldError(state, "companyName")}>
-        <input
+      <FormField id="companyName" label="Company name" error={fieldError(state, "companyName")}>
+        <Input
           id="companyName"
           name="companyName"
           type="text"
           defaultValue={initial?.companyName}
           required
-          className={inputClassName(!!fieldError(state, "companyName"))}
+          aria-invalid={!!fieldError(state, "companyName")}
         />
-      </Field>
+      </FormField>
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-        <Field id="requestedAmount" label="Requested amount" error={fieldError(state, "requestedAmount")}>
-          <input
+        <FormField id="requestedAmount" label="Requested amount" error={fieldError(state, "requestedAmount")}>
+          <Input
             id="requestedAmount"
             name="requestedAmount"
             type="number"
@@ -62,44 +65,44 @@ export function OpportunityForm({
             min="0.01"
             defaultValue={initial?.requestedAmount}
             required
-            className={inputClassName(!!fieldError(state, "requestedAmount"))}
+            aria-invalid={!!fieldError(state, "requestedAmount")}
           />
-        </Field>
+        </FormField>
 
-        <Field id="currency" label="Currency" error={fieldError(state, "currency")}>
-          <select
-            id="currency"
-            name="currency"
-            defaultValue={initial?.currency ?? Currency.USD}
-            className={inputClassName(!!fieldError(state, "currency"))}
-          >
-            {Object.values(Currency).map((currency) => (
-              <option key={currency} value={currency}>
-                {currency}
-              </option>
-            ))}
-          </select>
-        </Field>
+        <FormField id="currency" label="Currency" error={fieldError(state, "currency")}>
+          <Select name="currency" defaultValue={initial?.currency ?? Currency.USD}>
+            <SelectTrigger id="currency" className="w-full" aria-invalid={!!fieldError(state, "currency")}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.values(Currency).map((currency) => (
+                <SelectItem key={currency} value={currency}>
+                  {currency}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FormField>
       </div>
 
-      <Field id="submissionDate" label="Submission date" error={fieldError(state, "submissionDate")}>
-        <input
+      <FormField id="submissionDate" label="Submission date" error={fieldError(state, "submissionDate")}>
+        <Input
           id="submissionDate"
           name="submissionDate"
           type="date"
           defaultValue={initial?.submissionDate}
           required
-          className={inputClassName(!!fieldError(state, "submissionDate"))}
+          aria-invalid={!!fieldError(state, "submissionDate")}
         />
-      </Field>
+      </FormField>
 
-      <Field
+      <FormField
         id="description"
         label="Description"
         error={fieldError(state, "description")}
         hint={`${description.length}/${DESCRIPTION_MAX} characters`}
       >
-        <textarea
+        <Textarea
           id="description"
           name="description"
           rows={4}
@@ -107,9 +110,9 @@ export function OpportunityForm({
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           required
-          className={inputClassName(!!fieldError(state, "description"))}
+          aria-invalid={!!fieldError(state, "description")}
         />
-      </Field>
+      </FormField>
 
       <div className="flex justify-end gap-3">
         <SubmitButton pendingLabel={mode === "create" ? "Creating…" : "Saving…"}>

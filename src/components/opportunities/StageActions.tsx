@@ -3,8 +3,8 @@
 import type { Stage } from "@prisma/client";
 
 import { changeOpportunityStageFormAction } from "@/actions/stage";
-import { STAGE_LABELS } from "@/components/ui/Badge";
-import { SubmitButton } from "@/components/ui/SubmitButton";
+import { STAGE_LABELS } from "@/components/ui/status-badges";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { allowedNextStages } from "@/lib/stage-machine";
 import { useActionFeedback } from "@/lib/use-action-feedback";
 
@@ -22,7 +22,7 @@ function StageTransitionForm({
     onSuccess: onChanged,
   });
 
-  const variant = targetStage === "REJECTED" ? "danger" : "primary";
+  const variant = targetStage === "REJECTED" ? "destructive" : "default";
 
   return (
     <form action={formAction}>
@@ -47,7 +47,7 @@ export function StageActions({
   const nextStages = allowedNextStages(currentStage);
 
   if (nextStages.length === 0) {
-    return <p className="text-sm text-muted">No further stage transitions are available.</p>;
+    return <p className="text-sm text-muted-foreground">No further stage transitions are available.</p>;
   }
 
   return (

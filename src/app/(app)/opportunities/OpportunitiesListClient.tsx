@@ -1,20 +1,21 @@
 "use client";
 
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import useSWR from "swr";
 import type { UserRole } from "@prisma/client";
 
 import { listOpportunities } from "@/actions/opportunities";
 import { OpportunityFilters } from "@/components/opportunities/OpportunityFilters";
+import { OpportunityPagination } from "@/components/opportunities/OpportunityPagination";
 import { OpportunityTable } from "@/components/opportunities/OpportunityTable";
-import { buttonClassName } from "@/components/ui/Button";
-import { Pagination } from "@/components/ui/Pagination";
-import { EmptyState, ErrorState, TableSkeleton } from "@/components/ui/States";
+import { Button } from "@/components/ui/button";
+import { EmptyState, ErrorState, TableSkeleton } from "@/components/ui/states";
 import { canCreateOpportunity } from "@/lib/permissions";
 import { useOpportunityListQuery } from "@/lib/use-opportunity-list-query";
 
 export function OpportunitiesListClient({ role }: { role: UserRole }) {
-  const { query, update } = useOpportunityListQuery();
+  const { query, update, buildHref } = useOpportunityListQuery();
 
   const { data: result, error, isLoading, mutate } = useSWR(
     ["opportunities", query],
@@ -25,13 +26,18 @@ export function OpportunitiesListClient({ role }: { role: UserRole }) {
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-fg">Opportunities</h1>
-          <p className="text-sm text-muted">Track funding opportunities submitted by companies.</p>
+          <h1 className="text-lg font-semibold text-foreground">Opportunities</h1>
+          <p className="text-sm text-muted-foreground">
+            Track funding opportunities submitted by companies.
+          </p>
         </div>
         {canCreateOpportunity(role) ? (
-          <Link href="/opportunities/new" className={buttonClassName("primary")}>
-            New opportunity
-          </Link>
+          <Button asChild>
+            <Link href="/opportunities/new">
+              <Plus />
+              New opportunity
+            </Link>
+          </Button>
         ) : null}
       </div>
 
@@ -65,10 +71,10 @@ export function OpportunitiesListClient({ role }: { role: UserRole }) {
               )
             }
           />
-          <Pagination
+          <OpportunityPagination
             page={result.data.page}
             pageCount={result.data.pageCount}
-            onPageChange={(page) => update({ page })}
+            buildHref={buildHref}
           />
         </>
       ) : null}

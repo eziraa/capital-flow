@@ -108,8 +108,12 @@ export async function assignReviewerFormAction(
   formData: FormData,
 ): Promise<ActionResult<{ id: string }>> {
   const rawReviewerId = formData.get("reviewerId");
+  // Radix's Select can't use an empty string as an item value, so the
+  // "Unassigned" option carries this sentinel instead — see UNASSIGNED_VALUE
+  // in ReviewerAssignPanel.tsx.
+  const reviewerId = rawReviewerId && rawReviewerId !== "unassigned" ? (rawReviewerId as string) : null;
   return assignReviewer({
     opportunityId: formData.get("opportunityId") as string,
-    reviewerId: rawReviewerId ? (rawReviewerId as string) : null,
+    reviewerId,
   });
 }

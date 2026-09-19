@@ -17,7 +17,7 @@ archive/restore — is recorded in an append-only activity log.
 
 Next.js 16 (App Router) · React 19 · TypeScript · Prisma ORM · PostgreSQL ·
 Zod · SWR · NextAuth (Auth.js) v5 with a Credentials provider · bcryptjs ·
-Tailwind CSS v4.
+Tailwind CSS v4 · shadcn/ui (Radix primitives) for every UI component.
 
 ## Architecture
 
@@ -164,6 +164,16 @@ interface."
 
 ## Key technical decisions
 
+- **Every UI component is shadcn/ui**, not hand-rolled. Buttons, inputs,
+  selects, the table, cards, badges, dialogs, the sidebar, and toasts
+  (Sonner) all come from `src/components/ui/`, generated via the shadcn CLI
+  and customized in place (e.g. `success`/`warning` badge variants added
+  alongside shadcn's defaults, since stage badges need colors shadcn's base
+  palette doesn't ship). Radix's `Select` renders a hidden native `<select>`
+  when given a `name`, so it drops directly into the `<form action=
+  {serverAction}>` + `FormData` pattern below without extra plumbing — the
+  one exception is the reviewer-assignment "Unassigned" option, which uses a
+  sentinel value since Radix disallows an empty-string item value.
 - **NextAuth v5 (Auth.js) split into `auth.config.ts` + `auth.ts`.** The
   Credentials provider's `authorize()` needs Prisma and bcryptjs, which
   can't run on the Edge runtime. `proxy.ts` (Next 16's renamed
@@ -264,12 +274,15 @@ documentation were all AI-drafted and then reviewed. Concretely:
   replaying the real HTTP request with a tampered value (see "Manual
   security testing" above) rather than taking the code's correctness on
   faith.
-- **Debugged during development, not just generated:** two real issues were
-  hit and fixed along the way — a NextAuth v5 TypeScript module-augmentation
-  gap (`next-auth/jwt` re-exports its `JWT` type from `@auth/core/jwt`
-  rather than declaring it, so augmenting the former alone left
-  `token.role` typed as `unknown`), and Next.js 16's `middleware.ts` →
-  `proxy.ts` rename.
+- **Debugged during development, not just generated:** real issues were hit
+  and fixed along the way — a NextAuth v5 TypeScript module-augmentation gap
+  (`next-auth/jwt` re-exports its `JWT` type from `@auth/core/jwt` rather
+  than declaring it, so augmenting the former alone left `token.role` typed
+  as `unknown`); Next.js 16's `middleware.ts` → `proxy.ts` rename; and,
+  after migrating the UI to shadcn/ui, a `Tooltip must be used within
+  TooltipProvider` runtime error from the sidebar's collapsed-icon tooltips,
+  found by actually driving the app in a browser rather than trusting a
+  clean build.
 - **Design decisions were made and owned, not auto-accepted:** the data
   model (a single typed `Activity` log vs. a generic JSON event table), the
   `useActionState`-per-mutation pattern, and the assumptions listed above

@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { getOpportunity } from "@/actions/opportunities";
 import { auth } from "@/auth";
 import { OpportunityForm } from "@/components/opportunities/OpportunityForm";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toDateInputValue } from "@/lib/format";
 import { canEditOpportunity } from "@/lib/permissions";
 
@@ -30,21 +31,25 @@ export default async function EditOpportunityPage({
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="mb-1 text-lg font-semibold text-fg">Edit opportunity</h1>
-      <p className="mb-6 text-sm text-muted">{opportunity.companyName}</p>
-      <div className="rounded-lg border border-border bg-surface p-6 shadow-sm">
-        <OpportunityForm
-          mode="edit"
-          opportunityId={id}
-          initial={{
-            companyName: opportunity.companyName,
-            requestedAmount: String(opportunity.requestedAmount),
-            currency: opportunity.currency,
-            submissionDate: toDateInputValue(opportunity.submissionDate),
-            description: opportunity.description,
-          }}
-        />
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Edit opportunity</CardTitle>
+          <CardDescription>{opportunity.companyName}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <OpportunityForm
+            mode="edit"
+            opportunityId={id}
+            initial={{
+              companyName: opportunity.companyName,
+              requestedAmount: String(opportunity.requestedAmount),
+              currency: opportunity.currency,
+              submissionDate: toDateInputValue(opportunity.submissionDate),
+              description: opportunity.description,
+            }}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }

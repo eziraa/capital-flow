@@ -3,9 +3,11 @@
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { Loader2 } from "lucide-react";
 
-import { Button } from "@/components/ui/Button";
-import { Field, inputClassName } from "@/components/ui/Field";
+import { Button } from "@/components/ui/button";
+import { FormField } from "@/components/ui/form-field";
+import { Input } from "@/components/ui/input";
 
 export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
   const router = useRouter();
@@ -40,8 +42,8 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
-      <Field id="email" label="Email">
-        <input
+      <FormField id="email" label="Email">
+        <Input
           id="email"
           name="email"
           type="email"
@@ -49,12 +51,15 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className={inputClassName()}
+          // Chrome's password-manager heuristics inject a caret-color style
+          // onto login-shaped inputs before React hydrates, which otherwise
+          // trips a benign hydration mismatch warning.
+          suppressHydrationWarning
         />
-      </Field>
+      </FormField>
 
-      <Field id="password" label="Password">
-        <input
+      <FormField id="password" label="Password">
+        <Input
           id="password"
           name="password"
           type="password"
@@ -62,17 +67,18 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className={inputClassName()}
+          suppressHydrationWarning
         />
-      </Field>
+      </FormField>
 
       {error ? (
-        <p role="alert" className="text-sm font-medium text-danger">
+        <p role="alert" className="text-sm font-medium text-destructive">
           {error}
         </p>
       ) : null}
 
-      <Button type="submit" variant="primary" disabled={isSubmitting} aria-busy={isSubmitting}>
+      <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting}>
+        {isSubmitting ? <Loader2 className="animate-spin" /> : null}
         {isSubmitting ? "Signing in…" : "Sign in"}
       </Button>
     </form>

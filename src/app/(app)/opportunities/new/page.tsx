@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { OpportunityForm } from "@/components/opportunities/OpportunityForm";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { canCreateOpportunity } from "@/lib/permissions";
 
 export const metadata: Metadata = { title: "New opportunity — Capital Opportunities Tracker" };
@@ -14,11 +15,15 @@ export default async function NewOpportunityPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="mb-1 text-lg font-semibold text-fg">New opportunity</h1>
-      <p className="mb-6 text-sm text-muted">Record a funding opportunity submitted by a company.</p>
-      <div className="rounded-lg border border-border bg-surface p-6 shadow-sm">
-        <OpportunityForm mode="create" />
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>New opportunity</CardTitle>
+          <CardDescription>Record a funding opportunity submitted by a company.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <OpportunityForm mode="create" />
+        </CardContent>
+      </Card>
     </div>
   );
 }

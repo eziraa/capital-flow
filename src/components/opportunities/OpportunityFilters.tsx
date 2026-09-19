@@ -1,10 +1,13 @@
 "use client";
 
+import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Stage } from "@prisma/client";
 
-import { STAGE_LABELS } from "@/components/ui/Badge";
-import { inputClassName } from "@/components/ui/Field";
+import { STAGE_LABELS } from "@/components/ui/status-badges";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { OpportunityListQuery } from "@/lib/validation/opportunity-query";
 
 export function OpportunityFilters({
@@ -35,52 +38,55 @@ export function OpportunityFilters({
   return (
     <div className="flex flex-wrap items-end gap-3">
       <div className="flex min-w-[200px] flex-1 flex-col gap-1.5">
-        <label htmlFor="opportunity-search" className="text-sm font-medium text-fg">
-          Search company
-        </label>
-        <input
-          id="opportunity-search"
-          type="search"
-          placeholder="e.g. Acme Robotics"
-          value={searchDraft}
-          onChange={(e) => setSearchDraft(e.target.value)}
-          className={inputClassName()}
-        />
+        <Label htmlFor="opportunity-search">Search company</Label>
+        <div className="relative">
+          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            id="opportunity-search"
+            type="search"
+            placeholder="e.g. Acme Robotics"
+            value={searchDraft}
+            onChange={(e) => setSearchDraft(e.target.value)}
+            className="pl-8"
+          />
+        </div>
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="opportunity-stage" className="text-sm font-medium text-fg">
-          Stage
-        </label>
-        <select
-          id="opportunity-stage"
+        <Label htmlFor="opportunity-stage">Stage</Label>
+        <Select
           value={query.stage}
-          onChange={(e) => onChange({ stage: e.target.value as OpportunityListQuery["stage"] })}
-          className={inputClassName()}
+          onValueChange={(value) => onChange({ stage: value as OpportunityListQuery["stage"] })}
         >
-          <option value="ALL">All stages</option>
-          {Object.values(Stage).map((stage) => (
-            <option key={stage} value={stage}>
-              {STAGE_LABELS[stage]}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger id="opportunity-stage" className="w-[160px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All stages</SelectItem>
+            {Object.values(Stage).map((stage) => (
+              <SelectItem key={stage} value={stage}>
+                {STAGE_LABELS[stage]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="opportunity-archived" className="text-sm font-medium text-fg">
-          Show
-        </label>
-        <select
-          id="opportunity-archived"
+        <Label htmlFor="opportunity-archived">Show</Label>
+        <Select
           value={query.archived}
-          onChange={(e) => onChange({ archived: e.target.value as OpportunityListQuery["archived"] })}
-          className={inputClassName()}
+          onValueChange={(value) => onChange({ archived: value as OpportunityListQuery["archived"] })}
         >
-          <option value="ACTIVE">Active</option>
-          <option value="ARCHIVED">Archived</option>
-          <option value="ALL">All</option>
-        </select>
+          <SelectTrigger id="opportunity-archived" className="w-[140px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ACTIVE">Active</SelectItem>
+            <SelectItem value="ARCHIVED">Archived</SelectItem>
+            <SelectItem value="ALL">All</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
     </div>
   );

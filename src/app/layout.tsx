@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
-import { ToastProvider } from "@/components/ui/toast";
+import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 import "./globals.css";
 
@@ -26,8 +27,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-bg text-fg">
-        <ToastProvider>{children}</ToastProvider>
+      <body className="min-h-full flex flex-col bg-background text-foreground">
+        <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
+        <Toaster position="bottom-right" />
       </body>
     </html>
   );
