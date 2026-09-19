@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: capital_tracker
+      POSTGRES_PASSWORD: capital_tracker_dev_pw
+      POSTGRES_DB: capital_opportunities_tracker
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      # Host 5433 -> container 5432, so this doesn't collide with a Postgres
+      # you might already have running locally on the default 5432.
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U capital_tracker -d capital_opportunities_tracker"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://capital_tracker:capital_tracker_dev_pw@db:5432/capital_opportunities_tracker?schema=public
+      # Fine as-is for local/demo use. Override with your own via a `.env`
+      # file in this directory (docker-compose reads it automatically) if
+      # you want a real secret, e.g. AUTH_SECRET=<output of `openssl rand -base64 32`>.
+      AUTH_SECRET: ${AUTH_SECRET:-docker-compose-dev-secret-not-for-production-use}
+      NEXTAUTH_URL: http://localhost:3000
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+
+volumes:
+  db_data:

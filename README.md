@@ -62,18 +62,61 @@ Prisma or session access.
 
 ## Setup
 
-### Prerequisites
+### Option A — Docker (recommended; the only thing you need is Docker itself)
+
+```bash
+docker compose up --build
+```
+
+Then open **http://localhost:3000**. That one command:
+
+1. builds the app image (Next.js production build + Prisma client),
+2. starts PostgreSQL and waits for it to be healthy,
+3. applies every Prisma migration,
+4. seeds the demo data described below — **only if the database is
+   currently empty**, so restarting the containers later won't wipe data
+   you created through the running app,
+5. starts the app.
+
+No Node.js, PostgreSQL, or `npm install` needed on the host — Docker
+Compose is the only prerequisite. First run takes a few minutes (image
+build + `npm ci` inside the container); subsequent runs are fast.
+
+Useful commands:
+
+```bash
+docker compose up --build -d   # same, but detached (runs in the background)
+docker compose logs -f app     # follow the app container's logs
+docker compose down             # stop and remove the containers (keeps the database volume)
+docker compose down -v          # also delete the database volume — next `up` starts from a clean, freshly-seeded database
+```
+
+The app's `AUTH_SECRET` defaults to a fixed dev value in `docker-compose.yml`
+(fine for local/demo use). To use your own, put `AUTH_SECRET=<value>` in a
+`.env` file in this directory — `docker compose` reads it automatically —
+generated with `openssl rand -base64 32`, for example.
+
+If port `3000` or `5433` is already taken on your machine, change the
+left-hand side of the `ports:` mapping for the relevant service in
+`docker-compose.yml` (e.g. `"3001:3000"`).
+
+### Option B — Run locally without Docker
+
+<details>
+<summary>Expand if you'd rather run Node.js and PostgreSQL directly on your machine</summary>
+
+#### Prerequisites
 
 - Node.js 20+
 - A PostgreSQL server (local install, or `docker run` — see below)
 
-### 1. Install dependencies
+#### 1. Install dependencies
 
 ```bash
 npm install
 ```
 
-### 2. Configure environment variables
+#### 2. Configure environment variables
 
 ```bash
 cp .env.example .env
@@ -82,7 +125,7 @@ cp .env.example .env
 Edit `.env` and set `DATABASE_URL` to your PostgreSQL connection string, and
 `AUTH_SECRET` to a random value (`npx auth secret` generates one).
 
-### 3. Database setup
+#### 3. Database setup
 
 Using a local PostgreSQL install:
 
@@ -90,10 +133,10 @@ Using a local PostgreSQL install:
 createdb capital_opportunities_tracker
 ```
 
-Or with Docker, if you'd rather not install PostgreSQL locally (mapped to
-host port `5433` here so it doesn't collide with a Postgres you may already
-have running on the default `5432`; use `5432:5432` instead if you're sure
-nothing else is listening there):
+Or with Docker, running just the database (mapped to host port `5433` so it
+doesn't collide with a Postgres you may already have running on the default
+`5432`; use `5432:5432` instead if you're sure nothing else is listening
+there):
 
 ```bash
 docker run --name capital-tracker-db -e POSTGRES_USER=capital_tracker \
@@ -106,14 +149,14 @@ Then set `DATABASE_URL` in `.env` to match whichever of the above you used,
 e.g. for the Docker command as written:
 `postgresql://capital_tracker:capital_tracker_dev_pw@localhost:5433/capital_opportunities_tracker?schema=public`.
 
-### 4. Run migrations and seed data
+#### 4. Run migrations and seed data
 
 ```bash
 npm run db:migrate   # applies prisma/migrations
 npm run db:seed       # populates seed data (safe to re-run — it clears opportunity data first)
 ```
 
-### 5. Run the app
+#### 5. Run the app
 
 ```bash
 npm run dev
@@ -121,7 +164,7 @@ npm run dev
 
 Visit `http://localhost:3000`.
 
-### Other scripts
+#### Other scripts
 
 ```bash
 npm run build       # production build
@@ -130,6 +173,8 @@ npm run lint          # ESLint
 npm run typecheck   # tsc --noEmit
 npm run db:studio  # Prisma Studio, a GUI over the database
 ```
+
+</details>
 
 ## Seeded accounts
 
@@ -175,6 +220,22 @@ interface."
 
 ## Key technical decisions
 
+- **The Docker image runs migrations and seeds on container startup**
+  (`docker-entrypoint.sh`), rather than expecting a separate manual step —
+  `docker compose up` is meant to be the *only* command a reviewer runs.
+  `prisma migrate deploy` is safe to run on every start (it only applies
+  pending migrations). Seeding is conditional: the entrypoint checks the
+  user count first and only seeds an empty database, so restarting the
+  containers later doesn't wipe data created through the running app. The
+  image installs full `node_modules` (including `prisma` and `tsx`) rather
+  than Next's pruned "standalone" output, specifically so the entrypoint can
+  run those CLI tools, not just `next start` — a deliberate trade of image
+  size for a single, reliable startup path.
+- **`trustHost: true` in `auth.config.ts`.** Auth.js only auto-trusts the
+  request `Host` header on Vercel; anywhere else in production — this
+  Docker image included — it rejects every request with `UntrustedHost`
+  unless told to trust it explicitly. Found by actually running the built
+  container, not by inspection.
 - **`getActingUser()` re-reads role and disabled status from PostgreSQL on
   every Server Action call, instead of trusting the session JWT.** Without
   this, an admin disabling a user or changing their role would have no
@@ -289,16 +350,17 @@ interface."
   the round trip, with rollback on error.
 - A small `pg_trgm`-backed "did you mean" or fuzzy search, and configurable
   page size.
-- CSV export of the activity log (listed as an optional enhancement in the
-  brief; not attempted in favor of hardening the core requirements).
+- A dashboard chart and a hosted demo deployment (the brief's remaining two
+  optional enhancements) — not attempted.
 
 ## Requirements not completed
 
 All required functionality is implemented — see
 `docs/requirement-checklist.md` for a line-by-line audit against the
-assignment. None of the optional enhancements (CSV export, dashboard chart,
-optimistic UI, Docker Compose, hosted deployment) were attempted, per the
-brief's own guidance to prioritize the core requirements first.
+assignment. Of the brief's optional enhancements, the audit-log CSV export
+and a Docker Compose setup are done (see "Setup" above and `docker-compose.yml`);
+a dashboard chart, optimistic UI updates, and a hosted deployment were not
+attempted.
 
 ## AI usage
 
@@ -328,7 +390,12 @@ documentation were all AI-drafted and then reviewed. Concretely:
   interaction that looked correct in the code; and a real pluralization bug
   in a guard's error message ("5 active opportunit**yies**") caught by
   reading the actual toast text in a screenshot rather than trusting a
-  boolean assertion.
+  boolean assertion. Dockerizing the app surfaced two more: `package-lock.json`
+  had been generated with a newer local npm than the one bundled in the
+  `node:20-slim` build image, which failed `npm ci` inside the container
+  until the lockfile was regenerated with that same npm version; and the
+  `UntrustedHost` error described above, only visible once the built image
+  was actually run, not from reading the code.
 - **Design decisions were made and owned, not auto-accepted:** the data
   model (a single typed `Activity` log vs. a generic JSON event table), the
   `useActionState`-per-mutation pattern, and the assumptions listed above

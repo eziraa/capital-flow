@@ -15,6 +15,12 @@ export const authConfig = {
   session: {
     strategy: "jwt",
   },
+  // Auth.js only auto-trusts the request Host header on Vercel. Everywhere
+  // else in production (this app's Docker image included) it must be told
+  // explicitly, or every request gets rejected with "UntrustedHost" — the
+  // container has no public internet exposure of its own here (it's reached
+  // through a mapped port on a host the operator controls), so this is safe.
+  trustHost: true,
   callbacks: {
     jwt({ token, user }) {
       if (user) {
