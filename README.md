@@ -1,7 +1,6 @@
 # Capital Opportunities Tracker
 
-An internal tool for tracking funding opportunities submitted by companies —
-built for the Nexudy junior full-stack take-home assignment
+An internal tool for tracking funding opportunities submitted by companies 
 (`docs/assignment.pdf`).
 
 ## Overview

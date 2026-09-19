@@ -11,7 +11,7 @@ WORKDIR /app
 # ---- deps: install once, cached as long as the lockfile doesn't change ----
 FROM base AS deps
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 # ---- builder: generate the Prisma client and build the Next.js app ----
 FROM base AS builder
