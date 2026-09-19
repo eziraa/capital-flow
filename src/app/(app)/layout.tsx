@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 
+import { SessionProvider } from "next-auth/react";
+
 import { auth } from "@/auth";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
@@ -21,20 +23,22 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const user = { name: session.user.name ?? null, role: session.user.role };
 
   return (
-    <SidebarProvider>
-      <AppSidebar user={user} />
-      <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger />
-          <Separator orientation="vertical" className="h-4" />
-          <Breadcrumbs />
-          <div className="ml-auto">
-            <KeyboardShortcutsModal />
-          </div>
-        </header>
-        <main className="flex-1 px-4 py-6 sm:px-6">{children}</main>
-      </SidebarInset>
-      <CommandPalette />
-    </SidebarProvider>
+    <SessionProvider session={session}>
+      <SidebarProvider>
+        <AppSidebar user={user} />
+        <SidebarInset>
+          <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+            <SidebarTrigger />
+            <Separator orientation="vertical" className="h-4" />
+            <Breadcrumbs />
+            <div className="ml-auto">
+              <KeyboardShortcutsModal />
+            </div>
+          </header>
+          <main className="flex-1 px-4 py-6 sm:px-6">{children}</main>
+        </SidebarInset>
+        <CommandPalette />
+      </SidebarProvider>
+    </SessionProvider>
   );
 }
