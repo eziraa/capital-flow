@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Currency } from "@prisma/client";
 
 import { createOpportunityFormAction, updateOpportunityFormAction } from "@/actions/opportunities";
+import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,10 +27,16 @@ export function OpportunityForm({
   mode,
   opportunityId,
   initial,
+  onSuccess,
+  onCancel,
 }: {
   mode: "create" | "edit";
   opportunityId?: string;
   initial?: OpportunityFormValues;
+  /** Defaults to navigating to the saved opportunity's detail page. */
+  onSuccess?: (data: { id: string }) => void;
+  /** Renders a Cancel button next to Save when provided (e.g. closing a dialog). */
+  onCancel?: () => void;
 }) {
   const router = useRouter();
   const [description, setDescription] = useState(initial?.description ?? "");
@@ -37,7 +44,7 @@ export function OpportunityForm({
   const action = mode === "create" ? createOpportunityFormAction : updateOpportunityFormAction;
   const { state, formAction } = useActionFeedback(action, {
     successMessage: mode === "create" ? "Opportunity created." : "Opportunity updated.",
-    onSuccess: (data) => router.push(`/opportunities/${data.id}`),
+    onSuccess: onSuccess ?? ((data) => router.push(`/opportunities/${data.id}`)),
   });
 
   return (
@@ -115,6 +122,11 @@ export function OpportunityForm({
       </FormField>
 
       <div className="flex justify-end gap-3">
+        {onCancel ? (
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+        ) : null}
         <SubmitButton pendingLabel={mode === "create" ? "Creating…" : "Saving…"}>
           {mode === "create" ? "Create opportunity" : "Save changes"}
         </SubmitButton>

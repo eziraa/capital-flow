@@ -164,6 +164,14 @@ interface."
 
 ## Key technical decisions
 
+- **Create and edit are modals (shadcn `Dialog`), not separate routes.**
+  `OpportunityFormDialog` wraps the same `OpportunityForm` used either way;
+  the caller decides what "success" means — the list page navigates to the
+  new opportunity's detail page, while the detail page just revalidates its
+  SWR data and closes, so an edit updates in place with no navigation at
+  all. There's deliberately no `/opportunities/new` or `/opportunities/
+  [id]/edit` route anymore — the modal is the only way in, so there's no
+  second code path to keep in sync.
 - **Every UI component is shadcn/ui**, not hand-rolled. Buttons, inputs,
   selects, the table, cards, badges, dialogs, the sidebar, and toasts
   (Sonner) all come from `src/components/ui/`, generated via the shadcn CLI

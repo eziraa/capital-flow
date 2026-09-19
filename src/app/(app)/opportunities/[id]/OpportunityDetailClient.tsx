@@ -11,6 +11,7 @@ import { listReviewers } from "@/actions/reviewers";
 import { ActivityTimeline } from "@/components/opportunities/ActivityTimeline";
 import { ArchiveControls } from "@/components/opportunities/ArchiveControls";
 import { CommentsSection } from "@/components/opportunities/CommentsSection";
+import { OpportunityFormDialog } from "@/components/opportunities/OpportunityFormDialog";
 import { ReviewerAssignPanel } from "@/components/opportunities/ReviewerAssignPanel";
 import { StageActions } from "@/components/opportunities/StageActions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -18,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CardSkeleton, ErrorState } from "@/components/ui/states";
 import { ArchivedBadge, StageBadge } from "@/components/ui/status-badges";
-import { formatAmount, formatDate, formatDateTime } from "@/lib/format";
+import { formatAmount, formatDate, formatDateTime, toDateInputValue } from "@/lib/format";
 import {
   canAssignReviewer,
   canArchiveOrRestore,
@@ -98,12 +99,26 @@ export function OpportunityDetailClient({
         </div>
 
         {canEditOpportunity(role) && !isArchived ? (
-          <Button asChild variant="outline">
-            <Link href={`/opportunities/${id}/edit`}>
-              <Pencil />
-              Edit details
-            </Link>
-          </Button>
+          <OpportunityFormDialog
+            mode="edit"
+            opportunityId={id}
+            title="Edit opportunity"
+            description={opportunity.companyName}
+            initial={{
+              companyName: opportunity.companyName,
+              requestedAmount: String(opportunity.requestedAmount),
+              currency: opportunity.currency,
+              submissionDate: toDateInputValue(opportunity.submissionDate),
+              description: opportunity.description,
+            }}
+            trigger={
+              <Button variant="outline">
+                <Pencil />
+                Edit details
+              </Button>
+            }
+            onSaved={() => mutateOpportunity()}
+          />
         ) : null}
       </div>
 

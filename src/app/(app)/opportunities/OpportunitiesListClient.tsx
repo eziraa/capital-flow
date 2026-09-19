@@ -1,12 +1,13 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import type { UserRole } from "@prisma/client";
 
 import { listOpportunities } from "@/actions/opportunities";
 import { OpportunityFilters } from "@/components/opportunities/OpportunityFilters";
+import { OpportunityFormDialog } from "@/components/opportunities/OpportunityFormDialog";
 import { OpportunityPagination } from "@/components/opportunities/OpportunityPagination";
 import { OpportunityTable } from "@/components/opportunities/OpportunityTable";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import { canCreateOpportunity } from "@/lib/permissions";
 import { useOpportunityListQuery } from "@/lib/use-opportunity-list-query";
 
 export function OpportunitiesListClient({ role }: { role: UserRole }) {
+  const router = useRouter();
   const { query, update, buildHref } = useOpportunityListQuery();
 
   const { data: result, error, isLoading, mutate } = useSWR(
@@ -32,12 +34,18 @@ export function OpportunitiesListClient({ role }: { role: UserRole }) {
           </p>
         </div>
         {canCreateOpportunity(role) ? (
-          <Button asChild>
-            <Link href="/opportunities/new">
-              <Plus />
-              New opportunity
-            </Link>
-          </Button>
+          <OpportunityFormDialog
+            mode="create"
+            title="New opportunity"
+            description="Record a funding opportunity submitted by a company."
+            trigger={
+              <Button>
+                <Plus />
+                New opportunity
+              </Button>
+            }
+            onSaved={(data) => router.push(`/opportunities/${data.id}`)}
+          />
         ) : null}
       </div>
 

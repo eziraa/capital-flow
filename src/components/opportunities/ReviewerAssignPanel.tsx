@@ -31,7 +31,11 @@ export function ReviewerAssignPanel({
         <label htmlFor="reviewerId" className="text-sm font-medium text-foreground">
           Reviewer
         </label>
-        <Select name="reviewerId" defaultValue={currentReviewerId ?? UNASSIGNED_VALUE}>
+        <Select
+          key={currentReviewerId ?? UNASSIGNED_VALUE}
+          name="reviewerId"
+          defaultValue={currentReviewerId ?? UNASSIGNED_VALUE}
+        >
           <SelectTrigger id="reviewerId" className="w-full min-w-[180px]">
             <SelectValue />
           </SelectTrigger>
