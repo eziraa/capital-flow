@@ -1,12 +1,13 @@
-import { Stage } from "@prisma/client";
+import { Currency, Stage } from "@prisma/client";
 import { z } from "zod";
 
 export const PAGE_SIZE = 10;
 
 export const STAGE_FILTER_VALUES = ["ALL", ...Object.values(Stage)] as const;
 export const ARCHIVED_FILTER_VALUES = ["ACTIVE", "ARCHIVED", "ALL"] as const;
-export const SORT_FIELD_VALUES = ["submissionDate", "requestedAmount"] as const;
+export const SORT_FIELD_VALUES = ["submissionDate", "requestedAmount", "companyName"] as const;
 export const SORT_DIR_VALUES = ["asc", "desc"] as const;
+export const CURRENCY_FILTER_VALUES = ["ALL", ...Object.values(Currency)] as const;
 
 /**
  * The opportunities list's server-side query state. This is the validated
@@ -28,6 +29,12 @@ export const opportunityListQuerySchema = z.object({
   sort: z.enum(SORT_FIELD_VALUES).catch("submissionDate"),
   dir: z.enum(SORT_DIR_VALUES).catch("desc"),
   page: z.coerce.number().int().min(1).catch(1),
+  // Advanced filters
+  currency: z.enum(CURRENCY_FILTER_VALUES).catch("ALL"),
+  dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().catch(undefined),
+  dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().catch(undefined),
+  amountMin: z.coerce.number().positive().optional().catch(undefined),
+  amountMax: z.coerce.number().positive().optional().catch(undefined),
 });
 
 export type OpportunityListQuery = z.infer<typeof opportunityListQuerySchema>;

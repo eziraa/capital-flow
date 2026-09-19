@@ -11,6 +11,7 @@ import { listReviewers } from "@/actions/reviewers";
 import { ActivityTimeline } from "@/components/opportunities/ActivityTimeline";
 import { ArchiveControls } from "@/components/opportunities/ArchiveControls";
 import { CommentsSection } from "@/components/opportunities/CommentsSection";
+import { OpportunityDetailsForm } from "@/components/opportunities/OpportunityDetailsForm";
 import { OpportunityFormDialog } from "@/components/opportunities/OpportunityFormDialog";
 import { ReviewerAssignPanel } from "@/components/opportunities/ReviewerAssignPanel";
 import { StageActions } from "@/components/opportunities/StageActions";
@@ -23,9 +24,9 @@ import { formatAmount, formatDate, formatDateTime, toDateInputValue } from "@/li
 import {
   canAssignReviewer,
   canArchiveOrRestore,
+  canEditOpportunity,
   canChangeStage,
   canComment,
-  canEditOpportunity,
 } from "@/lib/permissions";
 import type { OpportunityDetail } from "@/lib/dto";
 
@@ -71,6 +72,21 @@ export function OpportunityDetailClient({
 
   function refreshAfterMutation() {
     mutateOpportunity();
+    mutateActivity();
+  }
+
+  /** Optimistically flip the archived state immediately, then revalidate. */
+  function handleArchiveChange() {
+    const current = opportunityResult?.ok ? opportunityResult.data : null;
+    if (current) {
+      mutateOpportunity(
+        {
+          ok: true as const,
+          data: { ...current, archivedAt: current.archivedAt ? null : new Date() },
+        },
+        { revalidate: true },
+      );
+    }
     mutateActivity();
   }
 
@@ -152,6 +168,12 @@ export function OpportunityDetailClient({
         </CardContent>
       </Card>
 
+      <OpportunityDetailsForm 
+        opportunity={opportunity} 
+        canEdit={canEditOpportunity(role) && !isArchived} 
+        onSaved={mutateOpportunity} 
+      />
+
       {canAssignReviewer(role) && !isArchived ? (
         <Section title="Reviewer assignment">
           {reviewersResult?.ok ? (
@@ -200,7 +222,7 @@ export function OpportunityDetailClient({
 
       {canArchiveOrRestore(role) ? (
         <Section title="Danger zone">
-          <ArchiveControls opportunityId={id} isArchived={isArchived} onChanged={refreshAfterMutation} />
+          <ArchiveControls opportunityId={id} isArchived={isArchived} onChanged={handleArchiveChange} />
         </Section>
       ) : null}
     </div>
