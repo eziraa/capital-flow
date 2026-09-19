@@ -12,11 +12,21 @@ export function ActivityTimeline({ activities }: { activities: ActivityDTO[] }) 
       {activities.map((activity) => (
         <li key={activity.id} className="border-l-2 pl-4">
           <p className="text-sm text-foreground">{describeActivity(activity)}</p>
+
+          {/* Show rationale block for stage changes that have one */}
+          {activity.type === "STAGE_CHANGED" && activity.rationale ? (
+            <p className="mt-1 whitespace-pre-wrap rounded-md bg-muted px-3 py-2 text-sm italic text-muted-foreground">
+              &ldquo;{activity.rationale}&rdquo;
+            </p>
+          ) : null}
+
+          {/* Show comment body for COMMENT_ADDED entries */}
           {activity.type === "COMMENT_ADDED" && activity.comment ? (
             <p className="mt-1 whitespace-pre-wrap rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
               {activity.comment.body}
             </p>
           ) : null}
+
           <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(activity.createdAt)}</p>
         </li>
       ))}

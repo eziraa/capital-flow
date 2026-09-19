@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import type { Stage } from "@prisma/client";
 
 import { changeOpportunityStageFormAction } from "@/actions/stage";
@@ -15,10 +16,15 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { STAGE_LABELS } from "@/components/ui/status-badges";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { allowedNextStages } from "@/lib/stage-machine";
 import { useActionFeedback } from "@/lib/use-action-feedback";
+
+/** Terminal stages that benefit most from an explicit rationale. */
+const RATIONALE_STAGES: Stage[] = ["APPROVED", "REJECTED"];
 
 function StageTransitionForm({
   opportunityId,
@@ -34,6 +40,8 @@ function StageTransitionForm({
     onSuccess: onChanged,
   });
 
+  const rationaleRef = useRef<HTMLTextAreaElement>(null);
+  const askRationale = RATIONALE_STAGES.includes(targetStage);
   const variant = targetStage === "REJECTED" ? "destructive" : "default";
   const label = `Move to ${STAGE_LABELS[targetStage]}`;
 
@@ -46,13 +54,36 @@ function StageTransitionForm({
         <AlertDialogHeader>
           <AlertDialogTitle>{label}?</AlertDialogTitle>
           <AlertDialogDescription>
-            This records a stage-change activity entry and can&apos;t be undone directly — moving it
-            back would be a separate, equally logged change.
+            This records a stage-change activity entry and can&apos;t be undone directly — moving
+            it back would be a separate, equally logged change.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <form action={formAction}>
           <input type="hidden" name="opportunityId" value={opportunityId} />
           <input type="hidden" name="stage" value={targetStage} />
+
+          {askRationale ? (
+            <div className="mb-4 flex flex-col gap-1.5">
+              <Label htmlFor={`rationale-${targetStage}`}>
+                Rationale{" "}
+                <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+              </Label>
+              <Textarea
+                id={`rationale-${targetStage}`}
+                name="rationale"
+                ref={rationaleRef}
+                placeholder={
+                  targetStage === "APPROVED"
+                    ? "Why is this opportunity approved?"
+                    : "Why is this opportunity rejected?"
+                }
+                maxLength={1000}
+                rows={3}
+                className="resize-none"
+              />
+            </div>
+          ) : null}
+
           <AlertDialogFooter>
             <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
             <AlertDialogAction asChild>

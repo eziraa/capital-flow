@@ -50,6 +50,7 @@ export const changeStageSchema = z.object({
   stage: z.enum(["UNDER_REVIEW", "APPROVED", "REJECTED"], {
     error: "Select a valid stage",
   }),
+  rationale: z.string().trim().max(1000, "Rationale must be 1000 characters or fewer").optional(),
 });
 
 export type ChangeStageInput = z.infer<typeof changeStageSchema>;

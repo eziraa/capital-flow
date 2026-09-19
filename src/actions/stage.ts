@@ -68,6 +68,7 @@ export async function changeOpportunityStage(
           actorId: user.id,
           previousStage: opportunity.stage,
           newStage,
+          rationale: parsed.data.rationale ?? null,
         },
       });
 
@@ -90,5 +91,6 @@ export async function changeOpportunityStageFormAction(
   return changeOpportunityStage({
     opportunityId: formData.get("opportunityId") as string,
     stage: formData.get("stage") as ChangeStageInput["stage"],
+    rationale: (formData.get("rationale") as string | null) ?? undefined,
   });
 }
