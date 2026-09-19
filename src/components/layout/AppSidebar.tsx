@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronsUpDown, LayoutDashboard, ListChecks, LogOut } from "lucide-react";
+import { ChevronsUpDown, LayoutDashboard, ListChecks, LogOut, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { UserRole } from "@prisma/client";
@@ -18,17 +18,22 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { canManageUsers } from "@/lib/permissions";
 import { RoleBadge } from "@/components/ui/status-badges";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/opportunities", label: "Opportunities", icon: ListChecks },
 ];
+
+const ADMIN_NAV_ITEMS = [{ href: "/admin/users", label: "Users", icon: Users }];
 
 function isActivePath(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
@@ -67,6 +72,27 @@ export function AppSidebar({ user }: { user: { name: string | null; role: UserRo
             );
           })}
         </SidebarMenu>
+
+        {canManageUsers(user.role) ? (
+          <SidebarGroup>
+            <SidebarGroupLabel>Admin</SidebarGroupLabel>
+            <SidebarMenu>
+              {ADMIN_NAV_ITEMS.map((item) => {
+                const active = isActivePath(pathname, item.href);
+                return (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
+                      <Link href={item.href} aria-current={active ? "page" : undefined}>
+                        <item.icon />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroup>
+        ) : null}
       </SidebarContent>
 
       <SidebarFooter>

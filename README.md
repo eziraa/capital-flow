@@ -13,6 +13,14 @@ Everyone with an account can view the dashboard and the opportunities list.
 Every state change — creation, stage change, reviewer reassignment, comment,
 archive/restore — is recorded in an append-only activity log.
 
+Admins also manage the team itself from **Admin → Users**: creating
+accounts, changing roles, resetting passwords, and enabling/disabling
+access — with guards against locking the app out of admins or orphaning a
+reviewer's active assignments (see "Key technical decisions" below). This
+part was added after the initial build, at the user's request — the
+original brief explicitly puts role management out of scope; see "Beyond
+the original brief" in `docs/requirement-checklist.md`.
+
 ## Tech stack
 
 Next.js 16 (App Router) · React 19 · TypeScript · Prisma ORM · PostgreSQL ·
@@ -134,7 +142,10 @@ All seeded users share the password **`password123`**.
 | Reviewer | `reviewer2@nexudy.test` |
 | Viewer | `viewer@nexudy.test` |
 
-The login page also displays these for convenience.
+The login page also displays these for convenience. The seed also creates a
+**disabled** reviewer account (`former-reviewer@nexudy.test`) so the
+disabled state — and the fact that it can't sign in — is visible without
+having to disable someone yourself first.
 
 ## Manual testing performed
 
@@ -164,6 +175,27 @@ interface."
 
 ## Key technical decisions
 
+- **`getActingUser()` re-reads role and disabled status from PostgreSQL on
+  every Server Action call, instead of trusting the session JWT.** Without
+  this, an admin disabling a user or changing their role would have no
+  effect on that user until their session expired and they logged back in
+  — the exact "even outside the user interface" gap this app treats as a
+  real boundary everywhere else. The cost is one extra indexed lookup per
+  action, which is negligible at this scale and is the same trade every
+  database-session-backed auth system makes implicitly.
+- **Users are disabled, never hard-deleted.** A `disabledAt` timestamp
+  (mirroring `Opportunity.archivedAt`) blocks sign-in and is treated as
+  unauthenticated by every Server Action, while leaving their existing
+  comments, activity entries, and created/reviewed opportunities intact —
+  deleting the row would either cascade-orphan that history or require
+  `onDelete: Restrict` blocking the delete anyway.
+- **Two guards protect the app from locking itself out**, checked inside
+  the same transaction as the write: `updateUser`/`disableUser` refuse to
+  demote or disable the last remaining active admin, and `updateUser`
+  refuses to move a reviewer off that role while they still hold active
+  (non-archived) opportunity assignments — both verified manually, not just
+  asserted (see `docs/requirement-checklist.md` → "Beyond the original
+  brief").
 - **Create and edit are modals (shadcn `Dialog`), not separate routes.**
   `OpportunityFormDialog` wraps the same `OpportunityForm` used either way;
   the caller decides what "success" means — the list page navigates to the
@@ -286,11 +318,17 @@ documentation were all AI-drafted and then reviewed. Concretely:
   and fixed along the way — a NextAuth v5 TypeScript module-augmentation gap
   (`next-auth/jwt` re-exports its `JWT` type from `@auth/core/jwt` rather
   than declaring it, so augmenting the former alone left `token.role` typed
-  as `unknown`); Next.js 16's `middleware.ts` → `proxy.ts` rename; and,
-  after migrating the UI to shadcn/ui, a `Tooltip must be used within
-  TooltipProvider` runtime error from the sidebar's collapsed-icon tooltips,
-  found by actually driving the app in a browser rather than trusting a
-  clean build.
+  as `unknown`); Next.js 16's `middleware.ts` → `proxy.ts` rename; a
+  `Tooltip must be used within TooltipProvider` runtime error from the
+  sidebar's collapsed-icon tooltips after migrating to shadcn/ui; a Radix
+  bug where calling `event.preventDefault()` in a `DropdownMenuItem`'s
+  `onSelect` (to let a Dialog open from a menu item) also blocks the menu's
+  own default close behavior, leaving it stuck open and swallowing the next
+  click — found because a browser-driven test kept timing out on an
+  interaction that looked correct in the code; and a real pluralization bug
+  in a guard's error message ("5 active opportunit**yies**") caught by
+  reading the actual toast text in a screenshot rather than trusting a
+  boolean assertion.
 - **Design decisions were made and owned, not auto-accepted:** the data
   model (a single typed `Activity` log vs. a generic JSON event table), the
   `useActionState`-per-mutation pattern, and the assumptions listed above

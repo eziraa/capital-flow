@@ -99,4 +99,36 @@ checked against the actual implementation.
 | Prevent accidental duplicate submissions | Complete | `useFormStatus`-driven `SubmitButton` disables itself while a Server Action is pending |
 | Visible success/failure feedback | Complete | Sonner toasts (`src/components/ui/sonner.tsx`), wired through `useActionFeedback` |
 | Transactions for multi-write consistency | Complete | create, stage change, reviewer assignment, comment, archive, restore |
-| **Optional enhancements** | Not attempted | Time was spent completing the core requirements thoroughly instead; see README → "What I'd improve" |
+| **Optional enhancements** | Partial | Audit-log CSV export (below) was attempted; the rest were not — see README → "What I'd improve" |
+
+## Beyond the original brief
+
+The brief explicitly puts role management out of scope ("Role management
+itself is outside the scope of this assignment"). The user later asked for
+it directly, so it was added afterward as its own reviewed feature, kept to
+the same standard as everything above rather than treated as a footnote.
+
+| Feature | Status | Evidence |
+| --- | --- | --- |
+| Admin-only user management (create, edit, role change) | Complete | `src/actions/users.ts`, `/admin/users`, gated by `canManageUsers()` |
+| Passwords hashed the same way as seeded accounts | Complete | `bcrypt.hash` in `createUser`/`setUserPassword`, same as `auth.ts`/seed |
+| Admin-initiated password reset | Complete | `setUserPassword`, `SetPasswordDialog` |
+| Enable/disable accounts instead of hard delete | Complete | `User.disabledAt`; preserves referential integrity of existing comments/activity/opportunities tied to that user |
+| Disabling blocks new sign-ins | Complete | checked in `auth.ts` `authorize()` |
+| Disabling also cuts off *existing* sessions immediately | Complete | `getActingUser()` re-reads role/`disabledAt` from Postgres on every Server Action call rather than trusting the session JWT — verified by disabling a logged-in-elsewhere user and confirming their next request is treated as unauthenticated, not just their next login |
+| Guard: can't disable your own account | Complete | checked in `disableUser`; the UI also hides "Disable" on your own row |
+| Guard: can't disable/demote the last active admin | Complete | checked in `updateUser` and `disableUser`, verified manually (see below) |
+| Guard: can't demote a reviewer with active assignments | Complete | checked in `updateUser`, verified manually (see below) |
+| Audit-log CSV export (admin only) | Complete | `exportActivityCsv()`, an "Export activity log" button on the dashboard — the assignment's own listed optional enhancement |
+| Role-gated UI throughout | Complete | sidebar "Admin" group, the dashboard export button, and the users table's row actions all check role before rendering, on top of the server-side checks that are the actual boundary |
+
+**Manually verified** (same standard as the stage-transition tamper test
+above — a friendly-looking toast message is not, by itself, proof a guard
+works): edited the only seeded admin's own role away from `ADMIN` and
+confirmed the exact "You can't remove the last admin" error, with the role
+unchanged in the database afterward; edited a reviewer with active
+assignments to `VIEWER` and confirmed the exact active-assignment-count
+error; disabled a user and confirmed their next login attempt fails with
+the same generic "Incorrect email or password" message a wrong password
+gets (no account-status leak); confirmed a non-admin hitting `/admin/users`
+directly is redirected, not shown a flash of the page first.

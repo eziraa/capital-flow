@@ -34,6 +34,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
+        // A disabled account can't start a new session. Existing sessions
+        // are cut off separately, on their next Server Action call — see
+        // getActingUser().
+        if (user.disabledAt) {
+          return null;
+        }
+
         return {
           id: user.id,
           name: user.name,

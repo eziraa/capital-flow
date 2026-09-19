@@ -5,12 +5,18 @@ const prisma = new PrismaClient();
 
 const SEED_PASSWORD = "password123";
 
-async function upsertUser(email: string, name: string, role: "ADMIN" | "REVIEWER" | "VIEWER") {
+async function upsertUser(
+  email: string,
+  name: string,
+  role: "ADMIN" | "REVIEWER" | "VIEWER",
+  disabled = false,
+) {
   const passwordHash = await bcrypt.hash(SEED_PASSWORD, 10);
+  const disabledAt = disabled ? new Date() : null;
   return prisma.user.upsert({
     where: { email },
-    update: { name, role, passwordHash },
-    create: { email, name, role, passwordHash },
+    update: { name, role, passwordHash, disabledAt },
+    create: { email, name, role, passwordHash, disabledAt },
   });
 }
 
@@ -108,6 +114,7 @@ async function main() {
   const reviewer1 = await upsertUser("reviewer1@nexudy.test", "Priya Shah", "REVIEWER");
   const reviewer2 = await upsertUser("reviewer2@nexudy.test", "Marcus Webb", "REVIEWER");
   await upsertUser("viewer@nexudy.test", "Jordan Lee", "VIEWER");
+  await upsertUser("former-reviewer@nexudy.test", "Sam Ellis", "REVIEWER", true);
 
   console.log("Clearing existing opportunity data...");
   await prisma.activity.deleteMany();

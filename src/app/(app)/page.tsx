@@ -13,5 +13,5 @@ export default async function DashboardPage() {
   if (!session?.user) redirect("/login");
 
   const result = await getDashboardSummary();
-  return <DashboardClient initial={result} />;
+  return <DashboardClient initial={result} role={session.user.role} />;
 }

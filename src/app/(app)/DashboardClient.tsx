@@ -2,17 +2,20 @@
 
 import Link from "next/link";
 import useSWR from "swr";
+import type { UserRole } from "@prisma/client";
 
 import { getDashboardSummary, type DashboardSummary } from "@/actions/dashboard";
+import { ExportActivityButton } from "@/components/dashboard/ExportActivityButton";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ErrorState } from "@/components/ui/states";
 import { STAGE_LABELS, StageBadge } from "@/components/ui/status-badges";
 import { formatAmount, formatDate } from "@/lib/format";
+import { canExportActivity } from "@/lib/permissions";
 import type { ActionResult } from "@/lib/action-result";
 
-export function DashboardClient({ initial }: { initial: ActionResult<DashboardSummary> }) {
+export function DashboardClient({ initial, role }: { initial: ActionResult<DashboardSummary>; role: UserRole }) {
   const { data: result, mutate } = useSWR(["dashboard"], () => getDashboardSummary(), {
     fallbackData: initial,
   });
@@ -25,9 +28,12 @@ export function DashboardClient({ initial }: { initial: ActionResult<DashboardSu
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-lg font-semibold text-foreground">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">An overview of active funding opportunities.</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-lg font-semibold text-foreground">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">An overview of active funding opportunities.</p>
+        </div>
+        {canExportActivity(role) ? <ExportActivityButton /> : null}
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">

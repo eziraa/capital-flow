@@ -32,3 +32,11 @@ export function canComment(role: UserRole): boolean {
 export function canArchiveOrRestore(role: UserRole): boolean {
   return role === "ADMIN";
 }
+
+export function canManageUsers(role: UserRole): boolean {
+  return role === "ADMIN";
+}
+
+export function canExportActivity(role: UserRole): boolean {
+  return role === "ADMIN";
+}

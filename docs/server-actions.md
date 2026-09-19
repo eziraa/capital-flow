@@ -135,3 +135,55 @@ separately.
 - **Input:** none.
 - **Success:** `DashboardSummary`.
 - **Failures:** `UNAUTHENTICATED`. No role restriction — every role can view the dashboard.
+
+---
+
+## User management (`src/actions/users.ts`) — admin only
+
+Beyond the standard authentication/role checks, every write here loads the
+target user inside its transaction and checks record state before writing —
+the same pattern the opportunity actions use for archive/stage checks.
+
+### `listUsers()`
+
+- **Purpose:** Every user account, with each reviewer's current active-assignment count and each user's created-opportunity count, for the admin user table.
+- **Success:** `UserListItem[]`. **Failures:** `UNAUTHENTICATED`; `FORBIDDEN` unless `ADMIN`.
+
+### `createUser(input)`
+
+- **Purpose:** Creates a user account with a bcrypt-hashed password. The account can sign in immediately.
+- **Input:** `{ name, email, password, role }`.
+- **Success:** `{ id }`.
+- **Failures:** `UNAUTHENTICATED`; `FORBIDDEN` unless `ADMIN`; `VALIDATION` for a missing name, invalid email, password under 8 characters, or invalid role; a duplicate email is also reported as a `VALIDATION` error on the `email` field rather than a raw database constraint error.
+
+### `updateUser(input)`
+
+- **Purpose:** Edits a user's name, email, and role, inside a transaction that re-checks two invariants against the row's *current* role before writing: it won't demote or disable the last remaining active admin (leaving the app with no admin), and it won't move a `REVIEWER` off that role while they still have active (non-archived) opportunity assignments — those must be reassigned first.
+- **Input:** `{ id, name, email, role }`.
+- **Success:** `{ id }`.
+- **Failures:** `UNAUTHENTICATED`; `FORBIDDEN` unless `ADMIN`; `NOT_FOUND`; `VALIDATION` (same field rules as create, minus password); `CONFLICT` for a duplicate email, the last-admin guard, or the active-reviewer-assignment guard.
+
+### `setUserPassword(input)`
+
+- **Purpose:** Sets a new bcrypt-hashed password for a user (an admin-initiated reset — there's no self-service "forgot password" flow, matching the assignment's scope).
+- **Input:** `{ id, password }`.
+- **Success:** `{ id }`.
+- **Failures:** `UNAUTHENTICATED`; `FORBIDDEN` unless `ADMIN`; `NOT_FOUND`; `VALIDATION` if the password is under 8 characters.
+
+### `disableUser(input)` / `enableUser(input)`
+
+- **Purpose:** Blocks or restores an account's ability to authenticate. A disabled account can't start a new session (checked in `authorize()`) and is treated as unauthenticated on every subsequent Server Action call for any session it already has (checked live in `getActingUser()`, not just at login) — so disabling takes effect immediately, not after that session expires.
+- **Input:** `{ id }`.
+- **Success:** `{ id }`.
+- **Failures:** `UNAUTHENTICATED`; `FORBIDDEN` unless `ADMIN`; `NOT_FOUND`; `CONFLICT` if disabling yourself, or disabling the last remaining active admin.
+
+---
+
+## Audit log export (`src/actions/audit-log.ts`) — admin only
+
+### `exportActivityCsv()`
+
+- **Purpose:** Builds a CSV of the full, cross-opportunity activity log (timestamp, company, activity type, actor, and a human-readable description reused from the per-opportunity timeline), for download. This is the assignment's own listed "audit-log export in CSV format" optional enhancement.
+- **Input:** none.
+- **Success:** `{ csv, filename }` — the client turns this into a file download via a `Blob` and a temporary anchor element; no route handler or file storage involved.
+- **Failures:** `UNAUTHENTICATED`; `FORBIDDEN` unless `ADMIN`.

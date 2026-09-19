@@ -47,6 +47,12 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  // Non-null means the account is disabled: blocked from signing in and
+  // from being treated as authenticated by any Server Action, even with an
+  // already-issued session cookie (see getActingUser). Kept as a nullable
+  // timestamp, matching Opportunity.archivedAt, so we retain when it happened.
+  disabledAt DateTime?
+
   createdOpportunities   Opportunity[] @relation("OpportunityCreatedBy")
   reviewingOpportunities Opportunity[] @relation("OpportunityReviewer")
   comments               Comment[]
