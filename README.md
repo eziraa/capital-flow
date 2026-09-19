@@ -82,16 +82,21 @@ Using a local PostgreSQL install:
 createdb capital_opportunities_tracker
 ```
 
-Or with Docker, if you'd rather not install PostgreSQL locally:
+Or with Docker, if you'd rather not install PostgreSQL locally (mapped to
+host port `5433` here so it doesn't collide with a Postgres you may already
+have running on the default `5432`; use `5432:5432` instead if you're sure
+nothing else is listening there):
 
 ```bash
 docker run --name capital-tracker-db -e POSTGRES_USER=capital_tracker \
   -e POSTGRES_PASSWORD=capital_tracker_dev_pw \
   -e POSTGRES_DB=capital_opportunities_tracker \
-  -p 5432:5432 -d postgres:16
+  -p 5433:5432 -d postgres:16
 ```
 
-Then match `DATABASE_URL` in `.env` to whichever of the above you used.
+Then set `DATABASE_URL` in `.env` to match whichever of the above you used,
+e.g. for the Docker command as written:
+`postgresql://capital_tracker:capital_tracker_dev_pw@localhost:5433/capital_opportunities_tracker?schema=public`.
 
 ### 4. Run migrations and seed data
 
