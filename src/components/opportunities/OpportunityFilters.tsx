@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, X } from "lucide-react";
+import { Filter, Search, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Currency, Stage } from "@prisma/client";
 
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { STAGE_LABELS } from "@/components/ui/status-badges";
 import type { OpportunityListQuery } from "@/lib/validation/opportunity-query";
 
@@ -23,6 +24,16 @@ function hasAdvancedFilters(q: OpportunityListQuery) {
     q.amountMin !== undefined ||
     q.amountMax !== undefined
   );
+}
+
+function countAdvancedFilters(q: OpportunityListQuery) {
+  let count = 0;
+  if (q.currency !== "ALL") count++;
+  if (q.dateFrom) count++;
+  if (q.dateTo) count++;
+  if (q.amountMin !== undefined) count++;
+  if (q.amountMax !== undefined) count++;
+  return count;
 }
 
 const DEFAULT_ADVANCED: Partial<OpportunityListQuery> = {
@@ -58,22 +69,44 @@ export function OpportunityFilters({
 
   const [amountMinDraft, setAmountMinDraft] = useState(query.amountMin?.toString() ?? "");
   const [amountMaxDraft, setAmountMaxDraft] = useState(query.amountMax?.toString() ?? "");
-
-  // Commit amount range after 500ms pause
+  const [dateFromDraft, setDateFromDraft] = useState(query.dateFrom ?? "");
+  const [dateToDraft, setDateToDraft] = useState(query.dateTo ?? "");
+  const [currencyDraft, setCurrencyDraft] = useState(query.currency);
+  
+  // Update internal draft states when query props change externally (like clearing a chip)
   useEffect(() => {
-    const min = amountMinDraft ? Number(amountMinDraft) : undefined;
-    const max = amountMaxDraft ? Number(amountMaxDraft) : undefined;
-    if (min === query.amountMin && max === query.amountMax) return;
-    const t = setTimeout(() => onChange({ amountMin: min, amountMax: max }), 500);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [amountMinDraft, amountMaxDraft]);
+    setAmountMinDraft(query.amountMin?.toString() ?? "");
+    setAmountMaxDraft(query.amountMax?.toString() ?? "");
+    setDateFromDraft(query.dateFrom ?? "");
+    setDateToDraft(query.dateTo ?? "");
+    setCurrencyDraft(query.currency);
+  }, [query.amountMin, query.amountMax, query.dateFrom, query.dateTo, query.currency]);
+
+  function applyAdvancedFilters() {
+    onChange({
+      amountMin: amountMinDraft ? Number(amountMinDraft) : undefined,
+      amountMax: amountMaxDraft ? Number(amountMaxDraft) : undefined,
+      dateFrom: dateFromDraft || undefined,
+      dateTo: dateToDraft || undefined,
+      currency: currencyDraft,
+    });
+  }
+
+  function clearAdvancedFilters() {
+    setAmountMinDraft("");
+    setAmountMaxDraft("");
+    setDateFromDraft("");
+    setDateToDraft("");
+    setCurrencyDraft("ALL");
+    onChange(DEFAULT_ADVANCED);
+  }
 
   const showChips = hasAdvancedFilters(query);
+  const filterCount = countAdvancedFilters(query);
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Row 1: search + stage + archived */}
+      {/* Primary Row: Search + Stage + Status + More Filters */}
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex min-w-[200px] flex-1 flex-col gap-1.5">
           <Label htmlFor="opportunity-search">Search company</Label>
@@ -127,73 +160,105 @@ export function OpportunityFilters({
           </Select>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="opportunity-currency">Currency</Label>
-          <Select
-            value={query.currency}
-            onValueChange={(value) => onChange({ currency: value as OpportunityListQuery["currency"] })}
-          >
-            <SelectTrigger id="opportunity-currency" className="w-[110px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All</SelectItem>
-              {Object.values(Currency).map((c) => (
-                <SelectItem key={c} value={c}>
-                  {CURRENCY_LABELS[c]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+        {/* More Filters Drawer */}
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="outline" className="gap-2 relative">
+              <Filter className="size-4" />
+              More filters
+              {filterCount > 0 && (
+                <span className="absolute -right-2 -top-2 flex size-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                  {filterCount}
+                </span>
+              )}
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-[400px] sm:w-[540px] flex flex-col">
+            <SheetHeader>
+              <SheetTitle>Advanced Filters</SheetTitle>
+              <SheetDescription>
+                Refine your opportunities by financial metrics, date ranges, and currency.
+              </SheetDescription>
+            </SheetHeader>
+            <div className="flex flex-1 flex-col gap-6 py-6 overflow-y-auto">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="opportunity-currency-drawer">Currency</Label>
+                <Select
+                  value={currencyDraft}
+                  onValueChange={(value) => setCurrencyDraft(value as OpportunityListQuery["currency"])}
+                >
+                  <SelectTrigger id="opportunity-currency-drawer">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Currencies</SelectItem>
+                    {Object.values(Currency).map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {CURRENCY_LABELS[c]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-      {/* Row 2: date range + amount range */}
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="opportunity-date-from">From date</Label>
-          <Input
-            id="opportunity-date-from"
-            type="date"
-            value={query.dateFrom ?? ""}
-            onChange={(e) => onChange({ dateFrom: e.target.value || undefined })}
-            className="w-[160px]"
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="opportunity-date-to">To date</Label>
-          <Input
-            id="opportunity-date-to"
-            type="date"
-            value={query.dateTo ?? ""}
-            onChange={(e) => onChange({ dateTo: e.target.value || undefined })}
-            className="w-[160px]"
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="opportunity-amount-min">Min amount</Label>
-          <Input
-            id="opportunity-amount-min"
-            type="number"
-            min={0}
-            placeholder="0"
-            value={amountMinDraft}
-            onChange={(e) => setAmountMinDraft(e.target.value)}
-            className="w-[130px]"
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="opportunity-amount-max">Max amount</Label>
-          <Input
-            id="opportunity-amount-max"
-            type="number"
-            min={0}
-            placeholder="∞"
-            value={amountMaxDraft}
-            onChange={(e) => setAmountMaxDraft(e.target.value)}
-            className="w-[130px]"
-          />
-        </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="opportunity-date-from-drawer">From Date</Label>
+                  <Input
+                    id="opportunity-date-from-drawer"
+                    type="date"
+                    value={dateFromDraft}
+                    onChange={(e) => setDateFromDraft(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="opportunity-date-to-drawer">To Date</Label>
+                  <Input
+                    id="opportunity-date-to-drawer"
+                    type="date"
+                    value={dateToDraft}
+                    onChange={(e) => setDateToDraft(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="opportunity-amount-min-drawer">Min Amount</Label>
+                  <Input
+                    id="opportunity-amount-min-drawer"
+                    type="number"
+                    min={0}
+                    placeholder="0"
+                    value={amountMinDraft}
+                    onChange={(e) => setAmountMinDraft(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="opportunity-amount-max-drawer">Max Amount</Label>
+                  <Input
+                    id="opportunity-amount-max-drawer"
+                    type="number"
+                    min={0}
+                    placeholder="∞"
+                    value={amountMaxDraft}
+                    onChange={(e) => setAmountMaxDraft(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+            <SheetFooter className="mt-auto flex justify-between gap-2 border-t pt-4 sm:justify-between">
+              <Button variant="ghost" onClick={clearAdvancedFilters}>
+                Clear all
+              </Button>
+              <SheetClose asChild>
+                <Button onClick={applyAdvancedFilters}>
+                  Apply Filters
+                </Button>
+              </SheetClose>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
       </div>
 
       {/* Active filter chips */}
@@ -227,7 +292,7 @@ export function OpportunityFilters({
           {query.amountMin !== undefined && (
             <Badge variant="secondary" className="gap-1">
               Min: {query.amountMin.toLocaleString()}
-              <button onClick={() => { setAmountMinDraft(""); onChange({ amountMin: undefined }); }} aria-label="Remove min amount filter">
+              <button onClick={() => onChange({ amountMin: undefined })} aria-label="Remove min amount filter">
                 <X className="size-3" />
               </button>
             </Badge>
@@ -235,7 +300,7 @@ export function OpportunityFilters({
           {query.amountMax !== undefined && (
             <Badge variant="secondary" className="gap-1">
               Max: {query.amountMax.toLocaleString()}
-              <button onClick={() => { setAmountMaxDraft(""); onChange({ amountMax: undefined }); }} aria-label="Remove max amount filter">
+              <button onClick={() => onChange({ amountMax: undefined })} aria-label="Remove max amount filter">
                 <X className="size-3" />
               </button>
             </Badge>
@@ -244,11 +309,7 @@ export function OpportunityFilters({
             variant="ghost"
             size="sm"
             className="h-6 px-2 text-xs"
-            onClick={() => {
-              setAmountMinDraft("");
-              setAmountMaxDraft("");
-              onChange(DEFAULT_ADVANCED);
-            }}
+            onClick={() => onChange(DEFAULT_ADVANCED)}
           >
             Clear all
           </Button>
