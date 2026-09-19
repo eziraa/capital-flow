@@ -2,6 +2,9 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { AppSidebar } from "@/components/layout/AppSidebar";
+import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
+import { CommandPalette } from "@/components/layout/CommandPalette";
+import { KeyboardShortcutsModal } from "@/components/layout/KeyboardShortcutsModal";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 
@@ -24,12 +27,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger />
           <Separator orientation="vertical" className="h-4" />
-          <span className="text-sm font-medium text-muted-foreground">
-            Capital Opportunities Tracker
-          </span>
+          <Breadcrumbs />
+          <div className="ml-auto">
+            <KeyboardShortcutsModal />
+          </div>
         </header>
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
       </SidebarInset>
+      <CommandPalette />
     </SidebarProvider>
   );
 }

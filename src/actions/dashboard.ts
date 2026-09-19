@@ -13,21 +13,17 @@ export type DashboardSummary = {
   amountByCurrency: { currency: Currency; total: number }[];
   recentOpportunities: OpportunityListItem[];
   reviewerWorkload: { id: string; name: string; activeCount: number }[];
+  submissionsTrend: { month: string; count: number }[];
 };
 
 const ACTIVE_FILTER = { archivedAt: null } as const;
 
-/**
- * Everything the dashboard needs, computed directly from PostgreSQL.
- * "Active" throughout means not archived — archived opportunities are
- * excluded from every total here, consistent with the list/archive rules.
- */
 export async function getDashboardSummary(): Promise<ActionResult<DashboardSummary>> {
   const user = await getActingUser();
   if (!user) return unauthenticated();
 
   try {
-    const [totalActive, stageGroups, amountGroups, recent, reviewers, reviewerGroups] =
+    const [totalActive, stageGroups, amountGroups, recent, reviewers, reviewerGroups, rawTrend] =
       await Promise.all([
         prisma.opportunity.count({ where: ACTIVE_FILTER }),
         prisma.opportunity.groupBy({
@@ -56,6 +52,12 @@ export async function getDashboardSummary(): Promise<ActionResult<DashboardSumma
           where: { ...ACTIVE_FILTER, reviewerId: { not: null } },
           _count: { _all: true },
         }),
+        // Get all dates to group them in TS since Prisma SQLite/PG date grouping is dialect-specific
+        prisma.opportunity.findMany({
+          where: ACTIVE_FILTER,
+          select: { submissionDate: true },
+          orderBy: { submissionDate: "asc" },
+        }),
       ]);
 
     const stageCounts = Object.fromEntries(Object.values(Stage).map((stage) => [stage, 0])) as Record<
@@ -78,12 +80,23 @@ export async function getDashboardSummary(): Promise<ActionResult<DashboardSumma
       activeCount: workloadByReviewerId.get(reviewer.id) ?? 0,
     }));
 
+    // Group trend by YYYY-MM
+    const trendMap = new Map<string, number>();
+    for (const item of rawTrend) {
+      const month = item.submissionDate.toISOString().slice(0, 7);
+      trendMap.set(month, (trendMap.get(month) ?? 0) + 1);
+    }
+    const submissionsTrend = Array.from(trendMap.entries())
+      .map(([month, count]) => ({ month, count }))
+      .slice(-6); // Last 6 months
+
     return ok({
       totalActive,
       stageCounts,
       amountByCurrency,
       recentOpportunities: recent.map(toOpportunityListItem),
       reviewerWorkload,
+      submissionsTrend,
     });
   } catch (error) {
     console.error("getDashboardSummary failed", error);
