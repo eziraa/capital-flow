@@ -1,0 +1,138 @@
+// Capital Opportunities Tracker — data model
+// See docs/architecture-notes.md for the reasoning behind these decisions.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  REVIEWER
+  VIEWER
+}
+
+enum Currency {
+  USD
+  EUR
+  GBP
+}
+
+enum Stage {
+  DRAFT
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum ActivityType {
+  CREATED
+  STAGE_CHANGED
+  REVIEWER_ASSIGNED
+  COMMENT_ADDED
+  ARCHIVED
+  RESTORED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  createdOpportunities   Opportunity[] @relation("OpportunityCreatedBy")
+  reviewingOpportunities Opportunity[] @relation("OpportunityReviewer")
+  comments               Comment[]
+
+  activitiesPerformed          Activity[] @relation("ActivityActor")
+  activitiesAsPreviousReviewer Activity[] @relation("ActivityPreviousReviewer")
+  activitiesAsNewReviewer      Activity[] @relation("ActivityNewReviewer")
+
+  @@index([role])
+}
+
+model Opportunity {
+  id              String    @id @default(cuid())
+  companyName     String
+  requestedAmount Decimal   @db.Decimal(14, 2)
+  currency        Currency
+  stage           Stage     @default(DRAFT)
+  submissionDate  DateTime  @db.Date
+  description     String    @db.VarChar(500)
+
+  reviewerId String?
+  reviewer   User?   @relation("OpportunityReviewer", fields: [reviewerId], references: [id])
+
+  createdById String
+  createdBy   User   @relation("OpportunityCreatedBy", fields: [createdById], references: [id])
+
+  // Non-null means archived. Kept as a nullable timestamp (rather than a
+  // boolean) so we retain *when* an opportunity was archived at no extra cost.
+  archivedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  comments   Comment[]
+  activities Activity[]
+
+  @@index([stage])
+  @@index([archivedAt])
+  @@index([companyName])
+  @@index([reviewerId])
+  @@index([submissionDate])
+}
+
+model Comment {
+  id            String      @id @default(cuid())
+  opportunityId String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
+
+  body      String   @db.VarChar(1000)
+  createdAt DateTime @default(now())
+
+  activity Activity?
+
+  @@index([opportunityId, createdAt])
+}
+
+/// Append-only audit trail for an opportunity. Rows are never updated or
+/// deleted by the application — only ever inserted.
+model Activity {
+  id            String      @id @default(cuid())
+  opportunityId String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  type ActivityType
+
+  actorId String
+  actor   User   @relation("ActivityActor", fields: [actorId], references: [id])
+
+  // Populated only for STAGE_CHANGED events.
+  previousStage Stage?
+  newStage      Stage?
+
+  // Populated only for REVIEWER_ASSIGNED events.
+  previousReviewerId String?
+  previousReviewer   User?   @relation("ActivityPreviousReviewer", fields: [previousReviewerId], references: [id])
+  newReviewerId      String?
+  newReviewer        User?   @relation("ActivityNewReviewer", fields: [newReviewerId], references: [id])
+
+  // Populated only for COMMENT_ADDED events.
+  commentId String?  @unique
+  comment   Comment? @relation(fields: [commentId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([opportunityId, createdAt])
+}
