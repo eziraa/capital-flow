@@ -64,6 +64,12 @@ model User {
   @@index([role])
 }
 
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
 model Opportunity {
   id              String    @id @default(cuid())
   companyName     String
@@ -72,6 +78,11 @@ model Opportunity {
   stage           Stage     @default(DRAFT)
   submissionDate  DateTime  @db.Date
   description     String    @db.VarChar(500)
+
+  // Phase 4 additions
+  priority        Priority  @default(MEDIUM)
+  tags            String[]
+  deadline        DateTime?
 
   reviewerId String?
   reviewer   User?   @relation("OpportunityReviewer", fields: [reviewerId], references: [id])
@@ -104,8 +115,10 @@ model Comment {
   authorId String
   author   User   @relation(fields: [authorId], references: [id])
 
-  body      String   @db.VarChar(1000)
-  createdAt DateTime @default(now())
+  body      String    @db.VarChar(1000)
+  isEdited  Boolean   @default(false)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
 
   activity Activity?
 
@@ -137,6 +150,9 @@ model Activity {
   // Populated only for COMMENT_ADDED events.
   commentId String?  @unique
   comment   Comment? @relation(fields: [commentId], references: [id])
+
+  // Optional rationale captured when changing stage (APPROVED / REJECTED).
+  rationale String? @db.VarChar(1000)
 
   createdAt DateTime @default(now())
 
