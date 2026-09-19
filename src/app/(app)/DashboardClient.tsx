@@ -1,5 +1,6 @@
 "use client";
 
+import { Briefcase, History, Users, Wallet } from "lucide-react";
 import Link from "next/link";
 import useSWR from "swr";
 import type { UserRole } from "@prisma/client";
@@ -10,10 +11,29 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ErrorState } from "@/components/ui/states";
-import { STAGE_LABELS, StageBadge } from "@/components/ui/status-badges";
+import { STAGE_ICONS, STAGE_LABELS, STAGE_TONE, StageBadge } from "@/components/ui/status-badges";
 import { formatAmount, formatDate } from "@/lib/format";
 import { canExportActivity } from "@/lib/permissions";
 import type { ActionResult } from "@/lib/action-result";
+
+function initials(name: string): string {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
+function CardTitleWithIcon({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
+  return (
+    <CardTitle className="flex items-center gap-2">
+      <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
+      {children}
+    </CardTitle>
+  );
+}
 
 export function DashboardClient({ initial, role }: { initial: ActionResult<DashboardSummary>; role: UserRole }) {
   const { data: result, mutate } = useSWR(["dashboard"], () => getDashboardSummary(), {
@@ -37,15 +57,21 @@ export function DashboardClient({ initial, role }: { initial: ActionResult<Dashb
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        <StatCard label="Active opportunities" value={String(totalActive)} />
+        <StatCard label="Active opportunities" value={String(totalActive)} icon={Briefcase} />
         {Object.entries(stageCounts).map(([stage, count]) => (
-          <StatCard key={stage} label={STAGE_LABELS[stage as keyof typeof STAGE_LABELS]} value={String(count)} />
+          <StatCard
+            key={stage}
+            label={STAGE_LABELS[stage as keyof typeof STAGE_LABELS]}
+            value={String(count)}
+            icon={STAGE_ICONS[stage as keyof typeof STAGE_ICONS]}
+            tone={STAGE_TONE[stage as keyof typeof STAGE_TONE]}
+          />
         ))}
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Requested amount by currency</CardTitle>
+          <CardTitleWithIcon icon={Wallet}>Requested amount by currency</CardTitleWithIcon>
         </CardHeader>
         <CardContent>
           {amountByCurrency.length === 0 ? (
@@ -70,7 +96,7 @@ export function DashboardClient({ initial, role }: { initial: ActionResult<Dashb
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Recently submitted</CardTitle>
+            <CardTitleWithIcon icon={History}>Recently submitted</CardTitleWithIcon>
           </CardHeader>
           <CardContent>
             {recentOpportunities.length === 0 ? (
@@ -103,7 +129,7 @@ export function DashboardClient({ initial, role }: { initial: ActionResult<Dashb
 
         <Card>
           <CardHeader>
-            <CardTitle>Reviewer workload</CardTitle>
+            <CardTitleWithIcon icon={Users}>Reviewer workload</CardTitleWithIcon>
           </CardHeader>
           <CardContent>
             {reviewerWorkload.length === 0 ? (
@@ -114,8 +140,18 @@ export function DashboardClient({ initial, role }: { initial: ActionResult<Dashb
                   <li key={reviewer.id}>
                     {index > 0 ? <Separator /> : null}
                     <div className="flex items-center justify-between gap-3 py-2.5">
-                      <span className="text-sm font-medium text-foreground">{reviewer.name}</span>
-                      <span className="text-sm text-muted-foreground">{reviewer.activeCount} active</span>
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span
+                          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground"
+                          aria-hidden="true"
+                        >
+                          {initials(reviewer.name)}
+                        </span>
+                        <span className="truncate text-sm font-medium text-foreground">{reviewer.name}</span>
+                      </div>
+                      <span className="shrink-0 text-sm text-muted-foreground">
+                        {reviewer.activeCount} active
+                      </span>
                     </div>
                   </li>
                 ))}

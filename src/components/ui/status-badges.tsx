@@ -1,3 +1,4 @@
+import { CheckCircle2, Clock, FileEdit, XCircle, type LucideIcon } from "lucide-react";
 import type { Stage, UserRole } from "@prisma/client";
 
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +10,21 @@ export const STAGE_LABELS: Record<Stage, string> = {
   REJECTED: "Rejected",
 };
 
+/** Shared semantic tone per stage — drives both the badge variant and stat-card icon color. */
+export const STAGE_TONE: Record<Stage, "default" | "warning" | "success" | "destructive"> = {
+  DRAFT: "default",
+  UNDER_REVIEW: "warning",
+  APPROVED: "success",
+  REJECTED: "destructive",
+};
+
+export const STAGE_ICONS: Record<Stage, LucideIcon> = {
+  DRAFT: FileEdit,
+  UNDER_REVIEW: Clock,
+  APPROVED: CheckCircle2,
+  REJECTED: XCircle,
+};
+
 const STAGE_VARIANT: Record<Stage, "outline" | "warning" | "success" | "destructive"> = {
   DRAFT: "outline",
   UNDER_REVIEW: "warning",
@@ -17,7 +33,13 @@ const STAGE_VARIANT: Record<Stage, "outline" | "warning" | "success" | "destruct
 };
 
 export function StageBadge({ stage }: { stage: Stage }) {
-  return <Badge variant={STAGE_VARIANT[stage]}>{STAGE_LABELS[stage]}</Badge>;
+  const Icon = STAGE_ICONS[stage];
+  return (
+    <Badge variant={STAGE_VARIANT[stage]}>
+      <Icon aria-hidden="true" />
+      {STAGE_LABELS[stage]}
+    </Badge>
+  );
 }
 
 const ROLE_LABELS: Record<UserRole, string> = {
