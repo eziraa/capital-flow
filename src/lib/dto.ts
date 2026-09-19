@@ -10,6 +10,23 @@ import type {
 
 type UserRef = { id: string; name: string };
 
+export type OpportunityDTO = {
+  id: string;
+  companyName: string;
+  requestedAmount: number;
+  currency: Currency;
+  submissionDate: Date;
+  stage: Stage;
+  description: string;
+  reviewer: UserRef | null;
+  priority: "LOW" | "MEDIUM" | "HIGH";
+  tags: string[];
+  deadline: Date | null;
+  archivedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export type OpportunityListItem = {
   id: string;
   companyName: string;
@@ -17,6 +34,9 @@ export type OpportunityListItem = {
   currency: Currency;
   stage: Stage;
   submissionDate: Date;
+  priority: "LOW" | "MEDIUM" | "HIGH";
+  tags: string[];
+  deadline: Date | null;
   archivedAt: Date | null;
   reviewer: UserRef | null;
 };
@@ -33,6 +53,8 @@ export type CommentDTO = {
   body: string;
   createdAt: Date;
   author: UserRef;
+  isEdited: boolean;
+  deletedAt: Date | null;
 };
 
 export type ActivityDTO = {
@@ -45,10 +67,32 @@ export type ActivityDTO = {
   previousReviewer: UserRef | null;
   newReviewer: UserRef | null;
   comment: { id: string; body: string } | null;
+  rationale: string | null;
 };
 
 function toUserRef(user: User): UserRef {
   return { id: user.id, name: user.name };
+}
+
+export function toOpportunityDTO(
+  model: Opportunity & { reviewer: User | null },
+): OpportunityDTO {
+  return {
+    id: model.id,
+    companyName: model.companyName,
+    requestedAmount: model.requestedAmount.toNumber(),
+    currency: model.currency,
+    submissionDate: model.submissionDate,
+    stage: model.stage,
+    description: model.description,
+    reviewer: model.reviewer ? toUserRef(model.reviewer) : null,
+    priority: model.priority,
+    tags: model.tags,
+    deadline: model.deadline,
+    archivedAt: model.archivedAt,
+    createdAt: model.createdAt,
+    updatedAt: model.updatedAt,
+  };
 }
 
 export function toOpportunityListItem(
@@ -61,6 +105,9 @@ export function toOpportunityListItem(
     currency: opportunity.currency,
     stage: opportunity.stage,
     submissionDate: opportunity.submissionDate,
+    priority: opportunity.priority,
+    tags: opportunity.tags,
+    deadline: opportunity.deadline,
     archivedAt: opportunity.archivedAt,
     reviewer: opportunity.reviewer ? toUserRef(opportunity.reviewer) : null,
   };
@@ -78,12 +125,14 @@ export function toOpportunityDetail(
   };
 }
 
-export function toCommentDTO(comment: Comment & { author: User }): CommentDTO {
+export function toCommentDTO(model: Comment & { author: User }): CommentDTO {
   return {
-    id: comment.id,
-    body: comment.body,
-    createdAt: comment.createdAt,
-    author: toUserRef(comment.author),
+    id: model.id,
+    body: model.body,
+    createdAt: model.createdAt,
+    author: toUserRef(model.author),
+    isEdited: model.isEdited,
+    deletedAt: model.deletedAt,
   };
 }
 
@@ -105,5 +154,6 @@ export function toActivityDTO(
     previousReviewer: activity.previousReviewer ? toUserRef(activity.previousReviewer) : null,
     newReviewer: activity.newReviewer ? toUserRef(activity.newReviewer) : null,
     comment: activity.comment ? { id: activity.comment.id, body: activity.comment.body } : null,
+    rationale: activity.rationale ?? null,
   };
 }

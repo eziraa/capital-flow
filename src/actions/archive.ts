@@ -115,3 +115,45 @@ export async function restoreOpportunityFormAction(
 ): Promise<ActionResult<{ id: string }>> {
   return restoreOpportunity({ opportunityId: formData.get("opportunityId") as string });
 }
+
+/** Bulk archive — admin only. Skips already-archived records silently. */
+export async function bulkArchiveOpportunities(
+  ids: string[],
+): Promise<ActionResult<{ count: number }>> {
+  const user = await getActingUser();
+  if (!user) return unauthenticated();
+  if (!canArchiveOrRestore(user.role)) {
+    return forbidden("Only admins can archive opportunities.");
+  }
+  if (!ids.length) return ok({ count: 0 });
+
+  try {
+    const now = new Date();
+    const updated = await prisma.$transaction(async (tx) => {
+      // Only archive those not already archived
+      const result = await tx.opportunity.updateMany({
+        where: { id: { in: ids }, archivedAt: null },
+        data: { archivedAt: now },
+      });
+      // Create activity entries for each
+      if (result.count > 0) {
+        const affected = await tx.opportunity.findMany({
+          where: { id: { in: ids }, archivedAt: now },
+          select: { id: true },
+        });
+        await tx.activity.createMany({
+          data: affected.map((o) => ({
+            opportunityId: o.id,
+            type: "ARCHIVED" as const,
+            actorId: user.id,
+          })),
+        });
+      }
+      return result;
+    });
+    return ok({ count: updated.count });
+  } catch (error) {
+    console.error("bulkArchiveOpportunities failed", error);
+    return unknownError();
+  }
+}

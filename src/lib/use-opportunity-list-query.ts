@@ -13,6 +13,11 @@ function toSearchParams(query: OpportunityListQuery): URLSearchParams {
   params.set("sort", query.sort);
   params.set("dir", query.dir);
   params.set("page", String(query.page));
+  params.set("currency", query.currency);
+  if (query.dateFrom) params.set("dateFrom", query.dateFrom);
+  if (query.dateTo) params.set("dateTo", query.dateTo);
+  if (query.amountMin !== undefined) params.set("amountMin", String(query.amountMin));
+  if (query.amountMax !== undefined) params.set("amountMax", String(query.amountMax));
   return params;
 }
 

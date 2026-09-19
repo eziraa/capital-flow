@@ -2,6 +2,7 @@ import { ArrowDown, ArrowUp } from "lucide-react";
 import Link from "next/link";
 
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ArchivedBadge, StageBadge } from "@/components/ui/status-badges";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatAmount, formatDate } from "@/lib/format";
@@ -19,11 +20,21 @@ export function OpportunityTable({
   items,
   query,
   onSort,
+  selectedIds,
+  onToggleSelect,
+  onToggleAll,
 }: {
   items: OpportunityListItem[];
   query: OpportunityListQuery;
   onSort: (field: SortableField) => void;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
+  onToggleAll?: (allIds: string[]) => void;
 }) {
+  const selectable = !!selectedIds && !!onToggleSelect && !!onToggleAll;
+  const allSelected = selectable && items.every((i) => selectedIds.has(i.id));
+  const someSelected = selectable && items.some((i) => selectedIds.has(i.id));
+
   function sortIndicator(field: SortableField) {
     if (query.sort !== field) return null;
     const Icon = query.dir === "asc" ? ArrowUp : ArrowDown;
@@ -42,6 +53,15 @@ export function OpportunityTable({
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
+              {selectable ? (
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                    onCheckedChange={() => onToggleAll!(items.map((i) => i.id))}
+                    aria-label="Select all"
+                  />
+                </TableHead>
+              ) : null}
               <TableHead>Company</TableHead>
               <TableHead>Stage</TableHead>
               {COLUMNS.map((col) => (
@@ -61,7 +81,16 @@ export function OpportunityTable({
           </TableHeader>
           <TableBody>
             {items.map((item) => (
-              <TableRow key={item.id}>
+              <TableRow key={item.id} data-selected={selectable && selectedIds.has(item.id) ? "true" : undefined}>
+                {selectable ? (
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedIds.has(item.id)}
+                      onCheckedChange={() => onToggleSelect!(item.id)}
+                      aria-label={`Select ${item.companyName}`}
+                    />
+                  </TableCell>
+                ) : null}
                 <TableCell>
                   <Link
                     href={`/opportunities/${item.id}`}

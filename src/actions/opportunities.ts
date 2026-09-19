@@ -54,6 +54,24 @@ function buildWhere(query: OpportunityListQuery): Prisma.OpportunityWhereInput {
     where.companyName = { contains: query.q, mode: "insensitive" };
   }
 
+  if (query.currency !== "ALL") {
+    where.currency = query.currency;
+  }
+
+  if (query.dateFrom || query.dateTo) {
+    where.submissionDate = {
+      ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
+      ...(query.dateTo ? { lte: new Date(query.dateTo) } : {}),
+    };
+  }
+
+  if (query.amountMin !== undefined || query.amountMax !== undefined) {
+    where.requestedAmount = {
+      ...(query.amountMin !== undefined ? { gte: query.amountMin } : {}),
+      ...(query.amountMax !== undefined ? { lte: query.amountMax } : {}),
+    };
+  }
+
   return where;
 }
 

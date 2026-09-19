@@ -7,7 +7,9 @@ import type { UserRole } from "@prisma/client";
 
 import { getDashboardSummary, type DashboardSummary } from "@/actions/dashboard";
 import { ExportActivityButton } from "@/components/dashboard/ExportActivityButton";
+import { StageBarChart } from "@/components/dashboard/StageBarChart";
 import { StatCard } from "@/components/dashboard/StatCard";
+import { SubmissionTrendChart } from "@/components/dashboard/SubmissionTrendChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ErrorState } from "@/components/ui/states";
@@ -44,7 +46,7 @@ export function DashboardClient({ initial, role }: { initial: ActionResult<Dashb
     return <ErrorState message={result.error.message} onRetry={() => mutate()} />;
   }
 
-  const { totalActive, stageCounts, amountByCurrency, recentOpportunities, reviewerWorkload } = result.data;
+  const { totalActive, stageCounts, amountByCurrency, recentOpportunities, reviewerWorkload, submissionsTrend } = result.data;
 
   return (
     <div className="flex flex-col gap-6">
@@ -67,6 +69,11 @@ export function DashboardClient({ initial, role }: { initial: ActionResult<Dashb
             tone={STAGE_TONE[stage as keyof typeof STAGE_TONE]}
           />
         ))}
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <StageBarChart data={stageCounts} />
+        <SubmissionTrendChart data={submissionsTrend} />
       </div>
 
       <Card>

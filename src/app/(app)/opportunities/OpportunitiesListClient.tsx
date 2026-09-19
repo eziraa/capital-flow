@@ -2,17 +2,20 @@
 
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import useSWR from "swr";
 import type { UserRole } from "@prisma/client";
 
 import { listOpportunities } from "@/actions/opportunities";
+import { BulkActionsBar } from "@/components/opportunities/BulkActionsBar";
+import { ExportExcelButton } from "@/components/opportunities/ExportExcelButton";
 import { OpportunityFilters } from "@/components/opportunities/OpportunityFilters";
 import { OpportunityFormDialog } from "@/components/opportunities/OpportunityFormDialog";
 import { OpportunityPagination } from "@/components/opportunities/OpportunityPagination";
 import { OpportunityTable } from "@/components/opportunities/OpportunityTable";
 import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorState, TableSkeleton } from "@/components/ui/states";
-import { canCreateOpportunity } from "@/lib/permissions";
+import { canCreateOpportunity, canArchiveOrRestore, canExportActivity } from "@/lib/permissions";
 import { useOpportunityListQuery } from "@/lib/use-opportunity-list-query";
 
 export function OpportunitiesListClient({ role }: { role: UserRole }) {
@@ -24,6 +27,29 @@ export function OpportunitiesListClient({ role }: { role: UserRole }) {
     () => listOpportunities(query),
   );
 
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  function toggleSelect(id: string) {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedIds(next);
+  }
+
+  function toggleAll(allPageIds: string[]) {
+    if (allPageIds.every((id) => selectedIds.has(id))) {
+      // Unselect all on this page
+      const next = new Set(selectedIds);
+      for (const id of allPageIds) next.delete(id);
+      setSelectedIds(next);
+    } else {
+      // Select all on this page
+      const next = new Set(selectedIds);
+      for (const id of allPageIds) next.add(id);
+      setSelectedIds(next);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -33,23 +59,41 @@ export function OpportunitiesListClient({ role }: { role: UserRole }) {
             Track funding opportunities submitted by companies.
           </p>
         </div>
-        {canCreateOpportunity(role) ? (
-          <OpportunityFormDialog
-            mode="create"
-            title="New opportunity"
-            description="Record a funding opportunity submitted by a company."
-            trigger={
-              <Button>
-                <Plus />
-                New opportunity
-              </Button>
-            }
-            onSaved={(data) => router.push(`/opportunities/${data.id}`)}
-          />
-        ) : null}
+        <div className="flex items-center gap-2">
+          {canExportActivity(role) ? <ExportExcelButton /> : null}
+          {canCreateOpportunity(role) ? (
+            <OpportunityFormDialog
+              mode="create"
+              title="New opportunity"
+              description="Record a funding opportunity submitted by a company."
+              trigger={
+                <Button size="sm">
+                  <Plus />
+                  New opportunity
+                </Button>
+              }
+              onSaved={(data) => router.push(`/opportunities/${data.id}`)}
+            />
+          ) : null}
+        </div>
       </div>
 
-      <OpportunityFilters query={query} onChange={(patch) => update(patch, { resetPage: true })} />
+      <OpportunityFilters
+        query={query}
+        onChange={(patch) => {
+          setSelectedIds(new Set()); // clear selection when filters change
+          update(patch, { resetPage: true });
+        }}
+      />
+
+      <BulkActionsBar
+        selectedIds={Array.from(selectedIds)}
+        onClear={() => setSelectedIds(new Set())}
+        onDone={() => {
+          setSelectedIds(new Set());
+          mutate();
+        }}
+      />
 
       {isLoading ? <TableSkeleton /> : null}
 
@@ -72,12 +116,17 @@ export function OpportunitiesListClient({ role }: { role: UserRole }) {
           <OpportunityTable
             items={result.data.items}
             query={query}
-            onSort={(field) =>
+            onSort={(field) => {
+              setSelectedIds(new Set());
               update(
                 { sort: field, dir: query.sort === field && query.dir === "desc" ? "asc" : "desc" },
                 { resetPage: true },
-              )
-            }
+              );
+            }}
+            // Only admins get the checkboxes since only admins can bulk archive right now
+            selectedIds={canArchiveOrRestore(role) ? selectedIds : undefined}
+            onToggleSelect={canArchiveOrRestore(role) ? toggleSelect : undefined}
+            onToggleAll={canArchiveOrRestore(role) ? toggleAll : undefined}
           />
           <OpportunityPagination
             page={result.data.page}
